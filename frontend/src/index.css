@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    --background: 213 78% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 213 60% 14%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 213 60% 14%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 174 57% 56%;
+    --primary-foreground: 213 78% 11%;
+
+    --secondary: 224 100% 82%;
+    --secondary-foreground: 213 78% 11%;
+
+    --muted: 213 40% 18%;
+    --muted-foreground: 215 16% 65%;
+
+    --accent: 224 100% 82%;
+    --accent-foreground: 213 78% 11%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 213 30% 22%;
+    --input: 213 30% 22%;
+    --ring: 174 57% 56%;
+
+    --radius: 0.75rem;
+
+    /* Custom AURA tokens */
+    --navy: 213 78% 11%;
+    --navy-light: 213 60% 14%;
+    --navy-lighter: 213 40% 18%;
+    --cyan: 174 57% 56%;
+    --cyan-glow: 174 70% 65%;
+    --lavender: 224 100% 82%;
+    --surface: 210 40% 98%;
+    --heading: 222 47% 11%;
+    --body: 215 14% 34%;
+    --caption: 215 16% 65%;
+
+    --glass-bg: hsla(213, 60%, 14%, 0.6);
+    --glass-border: hsla(224, 100%, 82%, 0.15);
+    --glow-cyan: 0 0 30px hsla(174, 57%, 56%, 0.4);
+    --glow-lavender: 0 0 30px hsla(224, 100%, 82%, 0.3);
+
+    --sidebar-background: 213 78% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 174 57% 56%;
+    --sidebar-primary-foreground: 213 78% 11%;
+    --sidebar-accent: 213 40% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 213 30% 18%;
+    --sidebar-ring: 174 57% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .glass-subtle {
+    background: hsla(213, 60%, 14%, 0.4);
+    border: 1px solid hsla(224, 100%, 82%, 0.08);
+    backdrop-filter: blur(12px);
+  }
+
+  .glow-cyan {
+    box-shadow: var(--glow-cyan);
+  }
+
+  .glow-lavender {
+    box-shadow: var(--glow-lavender);
+  }
+
+  .gradient-cyan-lavender {
+    background: linear-gradient(135deg, hsl(var(--cyan)), hsl(var(--lavender)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-bg-cyan {
+    background: linear-gradient(135deg, hsl(var(--cyan)), hsl(var(--lavender)));
+  }
+
+  .text-heading {
+    color: hsl(var(--foreground));
+  }
+
+  .text-body {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .text-caption {
+    color: hsl(var(--caption));
+  }
+
+  .text-cyan {
+    color: hsl(var(--cyan));
+  }
+
+  .text-lavender {
+    color: hsl(var(--lavender));
+  }
+
+  .bg-navy {
+    background-color: hsl(var(--navy));
+  }
+
+  .bg-navy-light {
+    background-color: hsl(var(--navy-light));
+  }
+
+  .border-glass {
+    border-color: var(--glass-border);
+  }
+
+  .stat-number {
+    font-size: 40px;
+    font-weight: 700;
+    color: hsl(var(--cyan));
+  }
+
+  .orb-glow {
+    box-shadow: 0 0 60px hsla(174, 57%, 56%, 0.4), 0 0 120px hsla(224, 100%, 82%, 0.2);
+  }
+
+  .pulse-ring {
+    animation: pulseRing 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseRing {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 0.2; }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+}
