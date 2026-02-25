@@ -7,7 +7,9 @@ import {
   Sparkles,
   Settings,
   Brain,
-  CalendarDays
+  CalendarDays,
+  Gamepad2,
+  Stethoscope,
 } from "lucide-react";
 import AuraOrb from "./AuraOrb";
 
@@ -15,8 +17,10 @@ const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Chat with AURA", url: "/chat", icon: MessageCircle },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Calendar", url: "/calendar", icon: CalendarDays }, // ✅ NEW TAB
   { title: "Wellness", url: "/recommendations", icon: Sparkles },
+  { title: "Calendar", url: "/calendar", icon: CalendarDays },
+  { title: "Games", url: "/games", icon: Gamepad2 },
+  { title: "Therapy", url: "/therapy", icon: Stethoscope }, // ✅ Added
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
@@ -25,10 +29,10 @@ const AppSidebar = () => {
 
   return (
     <aside className="w-[260px] min-h-screen bg-sidebar flex flex-col border-r border-border/50 shrink-0">
-      
+
       {/* Logo */}
       <div className="px-6 py-6 flex items-center gap-3">
-        <Brain className="w-8 h-8 text-cyan" />
+        <Brain className="w-8 h-8 text-primary" />
         <div>
           <h1 className="text-xl font-bold gradient-cyan-lavender">
             AURA
@@ -55,7 +59,7 @@ const AppSidebar = () => {
             to={item.url}
             end={item.url === "/"}
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
-            activeClassName="bg-muted text-cyan font-medium"
+            activeClassName="bg-muted text-primary font-medium"
           >
             <item.icon className="w-4 h-4" />
             <span>{item.title}</span>
@@ -63,10 +67,10 @@ const AppSidebar = () => {
         ))}
       </nav>
 
-      {/* Status */}
+      {/* Status Card */}
       <div className="p-4 mx-3 mb-4 glass rounded-xl">
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-2 h-2 rounded-full bg-cyan animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
           <span className="text-xs text-caption">
             AURA Active
           </span>
@@ -75,7 +79,6 @@ const AppSidebar = () => {
           Multimodal analysis ready
         </p>
       </div>
-
     </aside>
   );
 };

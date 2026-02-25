@@ -11,6 +11,15 @@ import Recommendations from "./pages/Recommendations";
 import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Calendar from "./pages/Calendar";
+import GamesPage from "./pages/GamesPage";
+import TherapyPage from "./pages/TherapyPage";
+
+import BreathingGame from "./pages/games/BreathingGame";
+import MemoryGame from "./pages/games/MemoryGame";
+import GratitudeGame from "./pages/games/GratitudeGame";
+import MazeGame from "./pages/games/MazeGame";
+import ColorGame from "./pages/games/ColorGame";
+import ZenGame from "./pages/games/ZenGame";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +39,14 @@ const App = () => (
               <Route path="/chat" element={<Chat />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/calendar" element={<Calendar />} />
+              <Route path="/games" element={<GamesPage />} />
+              <Route path="/games/breathing" element={<BreathingGame />} />
+              <Route path="/games/memory" element={<MemoryGame />} />
+              <Route path="/games/gratitude" element={<GratitudeGame />} />
+              <Route path="/games/maze" element={<MazeGame />} />
+              <Route path="/games/color" element={<ColorGame />} />
+              <Route path="/games/zen" element={<ZenGame />} />
+              <Route path="/therapy" element={<TherapyPage />} />
               <Route path="/recommendations" element={<Recommendations />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFound />} />
