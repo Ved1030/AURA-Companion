@@ -6,65 +6,51 @@
 
 @layer base {
   :root {
-    --background: 213 78% 11%;
-    --foreground: 210 40% 98%;
+    /* App Background */
+    --background: 214 65% 12%;
+    --foreground: 215 25% 22%;
 
-    --card: 213 60% 14%;
-    --card-foreground: 210 40% 98%;
+    /* Light Surfaces */
+    --card: 210 40% 98%;
+    --card-foreground: 215 25% 22%;
+    --popover: 210 40% 98%;
+    --popover-foreground: 215 25% 22%;
 
-    --popover: 213 60% 14%;
-    --popover-foreground: 210 40% 98%;
+    /* Brand */
+    --primary: 172 60% 56%;
+    --primary-foreground: 214 65% 12%;
+    --secondary: 224 100% 83%;
+    --secondary-foreground: 215 25% 22%;
+    --accent: 172 60% 56%;
+    --accent-foreground: 214 65% 12%;
 
-    --primary: 174 57% 56%;
-    --primary-foreground: 213 78% 11%;
+    /* Text hierarchy */
+    --muted: 210 30% 94%;
+    --muted-foreground: 215 16% 45%;
+    --caption: 215 18% 65%;
 
-    --secondary: 224 100% 82%;
-    --secondary-foreground: 213 78% 11%;
-
-    --muted: 213 40% 18%;
-    --muted-foreground: 215 16% 65%;
-
-    --accent: 224 100% 82%;
-    --accent-foreground: 213 78% 11%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 213 30% 22%;
-    --input: 213 30% 22%;
-    --ring: 174 57% 56%;
+    /* Borders */
+    --border: 214 25% 85%;
+    --input: 214 25% 90%;
+    --ring: 172 60% 56%;
 
     --radius: 0.75rem;
 
-    /* Custom AURA tokens */
-    --navy: 213 78% 11%;
-    --navy-light: 213 60% 14%;
-    --navy-lighter: 213 40% 18%;
-    --cyan: 174 57% 56%;
-    --cyan-glow: 174 70% 65%;
-    --lavender: 224 100% 82%;
-    --surface: 210 40% 98%;
-    --heading: 222 47% 11%;
-    --body: 215 14% 34%;
-    --caption: 215 16% 65%;
-
-    --glass-bg: hsla(213, 60%, 14%, 0.6);
-    --glass-border: hsla(224, 100%, 82%, 0.15);
-    --glow-cyan: 0 0 30px hsla(174, 57%, 56%, 0.4);
-    --glow-lavender: 0 0 30px hsla(224, 100%, 82%, 0.3);
-
-    --sidebar-background: 213 78% 8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 174 57% 56%;
-    --sidebar-primary-foreground: 213 78% 11%;
-    --sidebar-accent: 213 40% 18%;
+    /* Sidebar */
+    --sidebar-background: 214 70% 10%;
+    --sidebar-foreground: 210 40% 92%;
+    --sidebar-primary: 172 60% 56%;
+    --sidebar-primary-foreground: 214 65% 12%;
+    --sidebar-accent: 214 50% 18%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 213 30% 18%;
-    --sidebar-ring: 174 57% 56%;
-  }
-}
+    --sidebar-border: 214 40% 20%;
+    --sidebar-ring: 172 60% 56%;
 
-@layer base {
+    /* Glass */
+    --glass-bg: hsla(0, 0%, 100%, 0.92);
+    --glass-border: hsla(210, 20%, 75%, 0.35);
+  }
+
   * {
     @apply border-border;
   }
@@ -79,41 +65,19 @@
   .glass {
     background: var(--glass-bg);
     border: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
-
-  .glass-subtle {
-    background: hsla(213, 60%, 14%, 0.4);
-    border: 1px solid hsla(224, 100%, 82%, 0.08);
-    backdrop-filter: blur(12px);
-  }
-
-  .glow-cyan {
-    box-shadow: var(--glow-cyan);
-  }
-
-  .glow-lavender {
-    box-shadow: var(--glow-lavender);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   }
 
   .gradient-cyan-lavender {
-    background: linear-gradient(135deg, hsl(var(--cyan)), hsl(var(--lavender)));
+    background: linear-gradient(135deg, #4FD1C5, #A3BEFF);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    background-clip: text;
   }
 
   .gradient-bg-cyan {
-    background: linear-gradient(135deg, hsl(var(--cyan)), hsl(var(--lavender)));
-  }
-
-  .text-heading {
-    color: hsl(var(--foreground));
-  }
-
-  .text-body {
-    color: hsl(var(--muted-foreground));
+    background: linear-gradient(135deg, #4FD1C5, #A3BEFF);
   }
 
   .text-caption {
@@ -121,50 +85,12 @@
   }
 
   .text-cyan {
-    color: hsl(var(--cyan));
-  }
-
-  .text-lavender {
-    color: hsl(var(--lavender));
-  }
-
-  .bg-navy {
-    background-color: hsl(var(--navy));
-  }
-
-  .bg-navy-light {
-    background-color: hsl(var(--navy-light));
-  }
-
-  .border-glass {
-    border-color: var(--glass-border);
+    color: hsl(var(--primary));
   }
 
   .stat-number {
     font-size: 40px;
     font-weight: 700;
-    color: hsl(var(--cyan));
-  }
-
-  .orb-glow {
-    box-shadow: 0 0 60px hsla(174, 57%, 56%, 0.4), 0 0 120px hsla(224, 100%, 82%, 0.2);
-  }
-
-  .pulse-ring {
-    animation: pulseRing 2s ease-in-out infinite;
-  }
-
-  @keyframes pulseRing {
-    0%, 100% { transform: scale(1); opacity: 0.6; }
-    50% { transform: scale(1.15); opacity: 0.2; }
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-
-  .animate-float {
-    animation: float 4s ease-in-out infinite;
+    color: hsl(var(--primary));
   }
 }

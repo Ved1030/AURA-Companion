@@ -28,7 +28,6 @@ const stats = [
 
 const Index = () => {
   const webcamRef = useRef<Webcam>(null);
-
   const [emotion, setEmotion] = useState("happy");
   const [confidence, setConfidence] = useState(0);
 
@@ -39,9 +38,7 @@ const Index = () => {
 
       const response = await fetch("http://localhost:8000/emotion", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: imageSrc }),
       });
 
@@ -56,12 +53,8 @@ const Index = () => {
     }
   };
 
-  // Auto-detect every 3 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      detectEmotion();
-    }, 3000);
-
+    const interval = setInterval(detectEmotion, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -82,55 +75,70 @@ const Index = () => {
         </p>
       </motion.div>
 
-      {/* Stats row */}
-      <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Row */}
+      <motion.div
+        variants={item}
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      >
         {stats.map((s) => (
           <StatsCard key={s.label} {...s} />
         ))}
       </motion.div>
 
-      {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Center - Orb + Input Modes */}
+      {/* Camera + InputModes Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+
+        {/* LEFT - Camera + Orb */}
         <motion.div
           variants={item}
-          className="lg:col-span-1 flex flex-col items-center gap-6"
+          className="glass rounded-2xl p-8 flex flex-col items-center h-full"
         >
-          <div className="glass rounded-2xl p-8 w-full flex flex-col items-center">
-            
-            {/* Webcam Feed */}
-            <Webcam
-              ref={webcamRef}
-              screenshotFormat="image/jpeg"
-              width={220}
-              className="rounded-lg mb-6"
-            />
+          <Webcam
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            width={220}
+            className="rounded-lg mb-6"
+          />
 
-            {/* Dynamic Aura Orb */}
-            <AuraOrb emotion={emotion} size="lg" />
+          <AuraOrb emotion={emotion} size="lg" />
 
-            <p className="text-sm text-foreground font-medium mt-6">
-              Current State: {emotion}
-              <span className="text-cyan capitalize">{emotion}</span>
-            </p>
+          <p className="text-sm font-medium mt-6">
+            Current State:
+            <span className="text-cyan capitalize ml-2">
+              {emotion}
+            </span>
+          </p>
 
-            <p className="text-xs text-caption mt-1">
-              Confidence: {confidence.toFixed(2)}%
-            </p>
+          <p className="text-xs text-caption mt-1">
+            Confidence: {confidence.toFixed(2)}%
+          </p>
+        </motion.div>
+
+        {/* RIGHT - InputModes (Equal Height, No Fake Box) */}
+        <motion.div
+          variants={item}
+          className="flex h-full"
+        >
+          <div className="w-full flex flex-col justify-center">
+            <InputModes />
           </div>
-
-          <InputModes />
         </motion.div>
 
-        {/* Right panels */}
-        <motion.div variants={item} className="lg:col-span-1 space-y-6">
-          <EmotionPanel />
-        </motion.div>
-
-        <motion.div variants={item} className="lg:col-span-1">
-          <MoodTimeline />
-        </motion.div>
       </div>
+
+      {/* Emotion Panel */}
+      <motion.div variants={item}>
+        <EmotionPanel />
+      </motion.div>
+
+      {/* Weekly Mood Timeline - Full Width */}
+      <motion.div
+        variants={item}
+        className="glass rounded-2xl p-6"
+      >
+        <MoodTimeline />
+      </motion.div>
+
     </motion.div>
   );
 };

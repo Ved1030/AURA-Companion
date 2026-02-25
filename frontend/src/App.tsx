@@ -10,6 +10,7 @@ import Analytics from "./pages/Analytics";
 import Recommendations from "./pages/Recommendations";
 import SettingsPage from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Calendar from "./pages/Calendar";
 
 const queryClient = new QueryClient();
 
@@ -19,18 +20,22 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="flex min-h-screen w-full">
+        <div className="flex min-h-screen w-full bg-background">
           <AppSidebar />
-          <main className="flex-1 min-w-0 h-screen overflow-hidden">
+
+          {/* MAIN CONTENT AREA NOW LIGHT */}
+          <main className="flex-1 min-w-0 h-screen overflow-hidden bg-card">
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/chat" element={<Chat />} />
               <Route path="/analytics" element={<Analytics />} />
+              <Route path="/calendar" element={<Calendar />} />
               <Route path="/recommendations" element={<Recommendations />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
+
         </div>
       </BrowserRouter>
     </TooltipProvider>
