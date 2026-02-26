@@ -26,289 +26,221 @@ const ChatInterface = () => {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
-
   const [latestBlob, setLatestBlob] = useState<Blob | null>(null);
 
-  const [currentEmotion, setCurrentEmotion] =
-    useState<string>("neutral");
-  const [confidence, setConfidence] =
-    useState<number | null>(null);
+  const [currentEmotion, setCurrentEmotion] = useState<string>("neutral");
+  const [confidence, setConfidence] = useState<number | null>(null);
 
-  const mediaRecorderRef =
-    useRef<MediaRecorder | null>(null);
+  // 🔥 prevents repeated auto-trigger
+  const [hasStartedConversation, setHasStartedConversation] = useState(false);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
 
-  // 🔥 IMPORTANT: Now triggers lip sync via AIVatar
-  const playAudioFromBase64 = (base64Audio: string) => {
-    const byteCharacters = atob(base64Audio);
-    const byteNumbers = new Array(byteCharacters.length);
+  // 🔊 Play backend audio
+  // 🔊 Play backend audio + Lip Sync FIX
+const playAudioFromBase64 = (base64Audio: string) => {
+  const byteCharacters = atob(base64Audio);
+  const byteNumbers = new Array(byteCharacters.length);
 
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] =
-        byteCharacters.charCodeAt(i);
-    }
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
 
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], {
-      type: "audio/wav",
-    });
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: "audio/wav" });
 
-    setLatestBlob(blob); // 👈 This drives avatar lip sync
-  };
+  // 🔥 This drives AIVatar lip sync
+  setLatestBlob(blob);
+
+  // 🔥 This plays the audio
+  const audioUrl = URL.createObjectURL(blob);
+  const audio = new Audio(audioUrl);
+  audio.play().catch(console.error);
+};
 
   // 🧠 Emotion-based conversation starter
-  const triggerEmotionConversation = async (
-    emotion: string
-  ) => {
+  const triggerEmotionConversation = async (emotion: string) => {
     let starterText = "";
 
     switch (emotion) {
       case "sad":
-        starterText =
-          "You seem a little down. Want to talk about it?";
+        starterText = "You seem a little down. Want to talk about it?";
         break;
       case "happy":
-        starterText =
-          "You look happy today! What's making you smile?";
+        starterText = "You look happy today! What's making you smile?";
         break;
       case "angry":
-        starterText =
-          "I sense some frustration. Do you want to share what happened?";
+        starterText = "I sense some frustration. Do you want to share what happened?";
         break;
       case "fear":
-        starterText =
-          "You seem a bit anxious. I'm here with you. What's going on?";
+        starterText = "You seem a bit anxious. I'm here with you. What's going on?";
         break;
       case "surprise":
-        starterText =
-          "You look surprised! Something unexpected happened?";
+        starterText = "You look surprised! Something unexpected happened?";
         break;
       case "disgust":
-        starterText =
-          "Something doesn't feel right? Tell me what's bothering you.";
+        starterText = "Something doesn't feel right? Tell me what's bothering you.";
         break;
+      case "neutral":
       default:
-        starterText =
-          "How are you feeling right now?";
+        starterText = "How are you feeling right now?";
     }
 
     try {
-      const response = await fetch(
-        "http://127.0.0.1:8000/assistant",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            text: starterText,
-            emotion,
-          }),
-        }
-      );
+      const response = await fetch("http://127.0.0.1:8000/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: starterText,
+          emotion: emotion,
+        }),
+      });
 
       const data = await response.json();
 
       setMessages((prev) => [
         ...prev,
-        {
-          id: Date.now(),
-          text: data.reply,
-          sender: "aura",
-        },
+        { id: Date.now(), text: data.reply, sender: "aura" },
       ]);
 
-      if (data.audio)
-        playAudioFromBase64(data.audio);
+      if (data.audio) playAudioFromBase64(data.audio);
     } catch (err) {
-      console.error(
-        "Auto conversation failed:",
-        err
-      );
+      console.error("Auto conversation failed:", err);
     }
   };
 
-  // 🔥 ONE-TIME EMOTION DETECTION
+  // 🔥 CONTINUOUS EMOTION DETECTION + AUTO START
   useEffect(() => {
-    const detectOnce = async () => {
+    let interval: NodeJS.Timeout;
+
+    const detectEmotion = async () => {
       if (!webcamRef.current) return;
 
-      const imageSrc =
-        webcamRef.current.getScreenshot();
+      const imageSrc = webcamRef.current.getScreenshot();
       if (!imageSrc) return;
 
       try {
-        const response = await fetch(
-          "http://127.0.0.1:8000/emotion",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              image: imageSrc,
-            }),
-          }
-        );
+        const response = await fetch("http://127.0.0.1:8000/emotion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: imageSrc }),
+        });
 
         const data = await response.json();
 
-        if (
-          data.results &&
-          data.results.length > 0
-        ) {
+        if (data.results && data.results.length > 0) {
           const result = data.results[0];
 
-          setCurrentEmotion(result.emotion);
-          setConfidence(result.confidence);
+          const detectedEmotion = result.emotion;
+          const detectedConfidence = result.confidence;
 
-          if (result.confidence > 50) {
-            triggerEmotionConversation(
-              result.emotion
-            );
+          setCurrentEmotion(detectedEmotion);
+          setConfidence(detectedConfidence);
+
+          // 🔥 Auto-start once (professional logic)
+          if (
+            !hasStartedConversation &&
+            detectedConfidence > 60 &&
+            detectedEmotion !== "neutral"
+          ) {
+            triggerEmotionConversation(detectedEmotion);
+            setHasStartedConversation(true);
           }
         }
       } catch (err) {
-        console.error(
-          "Emotion detection error:",
-          err
-        );
+        console.error("Emotion detection error:", err);
       }
     };
 
-    const timeout = setTimeout(
-      detectOnce,
-      1500
-    );
-    return () => clearTimeout(timeout);
-  }, []);
+    const timeout = setTimeout(() => {
+      detectEmotion();
+      interval = setInterval(detectEmotion, 2000); // every 2 sec
+    }, 2000);
 
-  const sendTextMessage = async (
-    text: string
-  ) => {
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [hasStartedConversation]);
+
+  // 🧠 TEXT MESSAGE
+  const sendTextMessage = async (text: string) => {
     setLoading(true);
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/assistant",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          text,
-          emotion: currentEmotion,
-        }),
-      }
-    );
+    const response = await fetch("http://127.0.0.1:8000/assistant", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        emotion: currentEmotion,
+      }),
+    });
 
     const data = await response.json();
 
     setMessages((prev) => [
       ...prev,
-      {
-        id: Date.now(),
-        text: data.reply,
-        sender: "aura",
-      },
+      { id: Date.now(), text: data.reply, sender: "aura" },
     ]);
 
-    if (data.audio)
-      playAudioFromBase64(data.audio);
+    if (data.audio) playAudioFromBase64(data.audio);
 
     setLoading(false);
   };
 
-  const sendVoiceMessage = async (
-    audioBlob: Blob
-  ) => {
+  // 🎤 VOICE MESSAGE
+  const sendVoiceMessage = async (audioBlob: Blob) => {
     setLoading(true);
 
     const formData = new FormData();
-    formData.append(
-      "audio",
-      audioBlob,
-      "recording.wav"
-    );
-    formData.append(
-      "emotion",
-      currentEmotion
-    );
+    formData.append("audio", audioBlob, "recording.wav");
+    formData.append("emotion", currentEmotion);
 
-    const response = await fetch(
-      "http://127.0.0.1:8000/assistant",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+    const response = await fetch("http://127.0.0.1:8000/assistant", {
+      method: "POST",
+      body: formData,
+    });
 
     const data = await response.json();
 
     setMessages((prev) => [
       ...prev,
-      {
-        id: Date.now(),
-        text: data.user_text,
-        sender: "user",
-      },
-      {
-        id: Date.now() + 1,
-        text: data.reply,
-        sender: "aura",
-      },
+      { id: Date.now(), text: data.user_text, sender: "user" },
+      { id: Date.now() + 1, text: data.reply, sender: "aura" },
     ]);
 
-    if (data.audio)
-      playAudioFromBase64(data.audio);
+    if (data.audio) playAudioFromBase64(data.audio);
 
     setLoading(false);
   };
 
   const startRecording = async () => {
-    const stream =
-      await navigator.mediaDevices.getUserMedia(
-        { audio: true }
-      );
-    const mediaRecorder =
-      new MediaRecorder(stream);
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaRecorder = new MediaRecorder(stream);
 
-    mediaRecorderRef.current =
-      mediaRecorder;
+    mediaRecorderRef.current = mediaRecorder;
     audioChunks.current = [];
 
-    mediaRecorder.ondataavailable = (
-      event
-    ) => {
-      audioChunks.current.push(
-        event.data
-      );
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.current.push(event.data);
     };
 
     mediaRecorder.start();
   };
 
-  const stopRecording = (): Promise<
-    Blob | null
-  > => {
+  const stopRecording = (): Promise<Blob | null> => {
     return new Promise((resolve) => {
       if (!mediaRecorderRef.current) {
         resolve(null);
         return;
       }
 
-      mediaRecorderRef.current.onstop =
-        () => {
-          const blob = new Blob(
-            audioChunks.current,
-            { type: "audio/wav" }
-          );
-          setLatestBlob(blob);
-          resolve(blob);
-        };
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(audioChunks.current, { type: "audio/wav" });
+        setLatestBlob(blob);
+        resolve(blob);
+      };
 
       mediaRecorderRef.current.stop();
     });
@@ -319,11 +251,7 @@ const ChatInterface = () => {
 
     setMessages((prev) => [
       ...prev,
-      {
-        id: Date.now(),
-        text: input,
-        sender: "user",
-      },
+      { id: Date.now(), text: input, sender: "user" },
     ]);
 
     sendTextMessage(input);
@@ -344,14 +272,10 @@ const ChatInterface = () => {
             Emotion: {currentEmotion}
           </p>
           <p className="text-xs text-caption">
-            Confidence:{" "}
-            {confidence
-              ? confidence.toFixed(2) + "%"
-              : "--"}
+            Confidence: {confidence ? confidence.toFixed(2) + "%" : "--"}
           </p>
         </div>
 
-        {/* UI UNCHANGED */}
         <AIVatar audioBlob={latestBlob} />
       </div>
 
@@ -363,9 +287,7 @@ const ChatInterface = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className={`flex ${
-                msg.sender === "user"
-                  ? "justify-end"
-                  : "justify-start"
+                msg.sender === "user" ? "justify-end" : "justify-start"
               }`}
             >
               <div
@@ -400,19 +322,11 @@ const ChatInterface = () => {
             className="flex-1 bg-transparent text-sm outline-none"
             placeholder="Tell AURA how you're feeling..."
             value={input}
-            onChange={(e) =>
-              setInput(e.target.value)
-            }
-            onKeyDown={(e) =>
-              e.key === "Enter" &&
-              sendMessage()
-            }
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
           />
 
-          <button
-            onClick={sendMessage}
-            className="p-2 text-cyan"
-          >
+          <button onClick={sendMessage} className="p-2 text-cyan">
             <Send className="w-4 h-4" />
           </button>
         </div>
@@ -421,10 +335,8 @@ const ChatInterface = () => {
       {showVoiceModal && (
         <VoiceModal
           onStop={async () => {
-            const blob =
-              await stopRecording();
-            if (blob)
-              await sendVoiceMessage(blob);
+            const blob = await stopRecording();
+            if (blob) await sendVoiceMessage(blob);
             setShowVoiceModal(false);
           }}
           onCancel={() => {
