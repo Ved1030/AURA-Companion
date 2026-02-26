@@ -28,8 +28,10 @@ const stats = [
 
 const Index = () => {
   const webcamRef = useRef<Webcam>(null);
-  const [emotion, setEmotion] = useState("happy");
-  const [confidence, setConfidence] = useState(0);
+
+  const [emotion, setEmotion] = useState<string>("Detecting...");
+  const [confidence, setConfidence] = useState<number | null>(null);
+  const [emotions, setEmotions] = useState<Record<string, number>>({});
 
   const detectEmotion = async () => {
     try {
@@ -44,9 +46,16 @@ const Index = () => {
 
       const data = await response.json();
 
-      if (!data.error) {
-        setEmotion(data.dominant_emotion);
-        setConfidence(data.confidence);
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
+
+        setEmotion(result.emotion);
+        setConfidence(result.confidence);
+
+        // If you want full emotion distribution later
+        setEmotions({
+          [result.emotion]: result.confidence,
+        });
       }
     } catch (error) {
       console.error("Emotion detection error:", error);
@@ -54,7 +63,7 @@ const Index = () => {
   };
 
   useEffect(() => {
-    const interval = setInterval(detectEmotion, 3000);
+    const interval = setInterval(detectEmotion, 1500);
     return () => clearInterval(interval);
   }, []);
 
@@ -85,10 +94,10 @@ const Index = () => {
         ))}
       </motion.div>
 
-      {/* Camera + InputModes Row */}
+      {/* Camera + Orb Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
 
-        {/* LEFT - Camera + Orb */}
+        {/* LEFT */}
         <motion.div
           variants={item}
           className="glass rounded-2xl p-8 flex flex-col items-center h-full"
@@ -110,15 +119,13 @@ const Index = () => {
           </p>
 
           <p className="text-xs text-caption mt-1">
-            Confidence: {confidence.toFixed(2)}%
+            Confidence:{" "}
+            {confidence !== null ? `${confidence.toFixed(2)}%` : "--"}
           </p>
         </motion.div>
 
-        {/* RIGHT - InputModes (Equal Height, No Fake Box) */}
-        <motion.div
-          variants={item}
-          className="flex h-full"
-        >
+        {/* RIGHT */}
+        <motion.div variants={item} className="flex h-full">
           <div className="w-full flex flex-col justify-center">
             <InputModes />
           </div>
@@ -128,14 +135,11 @@ const Index = () => {
 
       {/* Emotion Panel */}
       <motion.div variants={item}>
-        <EmotionPanel />
+        <EmotionPanel emotions={emotions} />
       </motion.div>
 
-      {/* Weekly Mood Timeline - Full Width */}
-      <motion.div
-        variants={item}
-        className="glass rounded-2xl p-6"
-      >
+      {/* Weekly Timeline */}
+      <motion.div variants={item} className="glass rounded-2xl p-6">
         <MoodTimeline />
       </motion.div>
 

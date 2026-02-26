@@ -37,7 +37,7 @@ labels = {
 
 emotion_history = deque(maxlen=5)
 
-# -------------------- STARTUP EVENT --------------------
+# -------------------- STARTUP EVENTS --------------------
 
 @app.on_event("startup")
 def load_emotion_model():
@@ -54,7 +54,10 @@ def load_emotion_model():
     haar_file = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     face_cascade = cv2.CascadeClassifier(haar_file)
 
-    print("✅ Emotion Model Loaded Successfully!")
+    print("Emotion Model Loaded Successfully!")
+
+
+
 
 # -------------------- HELPER FUNCTIONS --------------------
 

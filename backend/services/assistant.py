@@ -4,7 +4,6 @@ import io
 from dotenv import load_dotenv
 from sarvamai import SarvamAI
 
-from dotenv import load_dotenv
 load_dotenv(dotenv_path=".env", override=True)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -12,7 +11,42 @@ SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 
 sarvam_client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
-def generate_ai_response(user_text):
+
+# -------------------- STRONG EMOTION-AWARE SYSTEM PROMPT --------------------
+
+def build_system_prompt(emotion: str):
+    emotion = (emotion or "neutral").lower()
+
+    return f"""
+You are AURA, an emotionally intelligent AI wellness companion.
+
+The user's facial emotion detected from the camera is: {emotion}.
+
+IMPORTANT RULES:
+- Start the conversation naturally based on this emotion.
+- Do NOT say you are an AI model.
+- Do NOT say you don't have emotions.
+- Be warm, human-like, and caring.
+- Keep responses short and conversational (2–4 sentences max).
+
+Emotion Handling Guide:
+- sad → Be empathetic and supportive.
+- happy → Be energetic and celebrate.
+- angry → Be calming and de-escalate.
+- fear → Reassure and provide comfort.
+- surprise → Be curious and engaging.
+- disgust → Be understanding and gentle.
+- neutral → Gently check in and ask how they feel.
+
+Always respond like you are directly talking to the user.
+"""
+
+
+# -------------------- LLM CALL --------------------
+
+def generate_ai_response(user_text, emotion=None):
+    system_prompt = build_system_prompt(emotion)
+
     response = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
         headers={
@@ -24,7 +58,7 @@ def generate_ai_response(user_text):
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are a friendly voice assistant. Keep answers short and conversational."
+                    "content": system_prompt
                 },
                 {
                     "role": "user",
@@ -32,7 +66,7 @@ def generate_ai_response(user_text):
                 }
             ],
             "temperature": 0.7,
-            "max_tokens": 300
+            "max_tokens": 200
         }
     )
 
@@ -43,10 +77,14 @@ def generate_ai_response(user_text):
     return data["choices"][0]["message"]["content"]
 
 
-async def process_assistant(request, audio):
-    user_text = None
+# -------------------- MAIN PROCESS FUNCTION --------------------
 
-    # Voice input
+async def process_assistant(request, audio):
+
+    user_text = None
+    emotion = "neutral"
+
+    # -------------------- VOICE INPUT --------------------
     if audio:
         audio_bytes = await audio.read()
         audio_file = io.BytesIO(audio_bytes)
@@ -59,16 +97,24 @@ async def process_assistant(request, audio):
 
         user_text = stt_response.transcript
 
-    # Text input
+        form_data = await request.form()
+        emotion = form_data.get("emotion", "neutral")
+
+    # -------------------- TEXT INPUT --------------------
     else:
         body = await request.json()
         user_text = body.get("text")
+        emotion = body.get("emotion", "neutral")
 
     if not user_text:
         return {"error": "No input provided"}
 
-    ai_reply = generate_ai_response(user_text)
+    print("Emotion received:", emotion)
 
+    # -------------------- GENERATE RESPONSE --------------------
+    ai_reply = generate_ai_response(user_text, emotion)
+
+    # -------------------- TEXT TO SPEECH --------------------
     try:
         tts_response = sarvam_client.text_to_speech.convert(
             target_language_code="en-IN",
@@ -76,6 +122,7 @@ async def process_assistant(request, audio):
             model="bulbul:v3",
             speaker="shubh"
         )
+
         audio_base64 = tts_response.audios[0]
 
     except Exception as e:
@@ -83,6 +130,7 @@ async def process_assistant(request, audio):
         audio_base64 = None
 
     return {
+        "emotion_detected": emotion,
         "user_text": user_text,
         "reply": ai_reply,
         "audio": audio_base64

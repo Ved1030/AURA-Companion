@@ -1,6 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Mic, Camera } from "lucide-react";
+import Webcam from "react-webcam";
+
 import AIVatar from "./AIVatar";
 import VoiceModal from "@/components/VoiceModal";
 
@@ -8,16 +10,16 @@ interface Message {
   id: number;
   text: string;
   sender: "user" | "aura";
-  emotion?: string;
 }
 
 const ChatInterface = () => {
+  const webcamRef = useRef<Webcam>(null);
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Hello! I'm AURA, your AI wellness companion. How are you feeling today?",
+      text: "Hello! I'm AURA, your AI wellness companion.",
       sender: "aura",
-      emotion: "calm",
     },
   ]);
 
@@ -25,6 +27,9 @@ const ChatInterface = () => {
   const [loading, setLoading] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [latestBlob, setLatestBlob] = useState<Blob | null>(null);
+
+  const [currentEmotion, setCurrentEmotion] = useState<string>("neutral");
+  const [confidence, setConfidence] = useState<number | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
@@ -35,6 +40,98 @@ const ChatInterface = () => {
     audio.play().catch(console.error);
   };
 
+  // 🧠 Emotion-based conversation starter
+  const triggerEmotionConversation = async (emotion: string) => {
+    let starterText = "";
+
+    switch (emotion) {
+      case "sad":
+        starterText = "You seem a little down. Want to talk about it?";
+        break;
+      case "happy":
+        starterText = "You look happy today! What's making you smile?";
+        break;
+      case "angry":
+        starterText = "I sense some frustration. Do you want to share what happened?";
+        break;
+      case "fear":
+        starterText = "You seem a bit anxious. I'm here with you. What's going on?";
+        break;
+      case "surprise":
+        starterText = "You look surprised! Something unexpected happened?";
+        break;
+      case "disgust":
+        starterText = "Something doesn't feel right? Tell me what's bothering you.";
+        break;
+      case "neutral":
+      default:
+        starterText = "How are you feeling right now?";
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: starterText,
+          emotion: emotion,
+        }),
+      });
+
+      const data = await response.json();
+
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now(), text: data.reply, sender: "aura" },
+      ]);
+
+      if (data.audio) playAudioFromBase64(data.audio);
+    } catch (err) {
+      console.error("Auto conversation failed:", err);
+    }
+  };
+
+  // 🔥 ONE-TIME EMOTION DETECTION (ON PAGE LOAD ONLY)
+  useEffect(() => {
+    const detectOnce = async () => {
+      if (!webcamRef.current) return;
+
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (!imageSrc) return;
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/emotion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: imageSrc }),
+        });
+
+        const data = await response.json();
+
+        if (data.results && data.results.length > 0) {
+          const result = data.results[0];
+
+          const detectedEmotion = result.emotion;
+          const detectedConfidence = result.confidence;
+
+          setCurrentEmotion(detectedEmotion);
+          setConfidence(detectedConfidence);
+
+          if (detectedConfidence > 50) {
+            triggerEmotionConversation(detectedEmotion);
+          }
+        }
+      } catch (err) {
+        console.error("Emotion detection error:", err);
+      }
+    };
+
+    // Small delay so webcam initializes
+    const timeout = setTimeout(detectOnce, 1500);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
   // 🧠 TEXT MESSAGE
   const sendTextMessage = async (text: string) => {
     setLoading(true);
@@ -42,7 +139,10 @@ const ChatInterface = () => {
     const response = await fetch("http://127.0.0.1:8000/assistant", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({
+        text,
+        emotion: currentEmotion,
+      }),
     });
 
     const data = await response.json();
@@ -63,6 +163,7 @@ const ChatInterface = () => {
 
     const formData = new FormData();
     formData.append("audio", audioBlob, "recording.wav");
+    formData.append("emotion", currentEmotion);
 
     const response = await fetch("http://127.0.0.1:8000/assistant", {
       method: "POST",
@@ -82,7 +183,6 @@ const ChatInterface = () => {
     setLoading(false);
   };
 
-  // 🎤 START RECORDING
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mediaRecorder = new MediaRecorder(stream);
@@ -97,7 +197,6 @@ const ChatInterface = () => {
     mediaRecorder.start();
   };
 
-  // ⏹ STOP RECORDING AND RETURN BLOB
   const stopRecording = (): Promise<Blob | null> => {
     return new Promise((resolve) => {
       if (!mediaRecorderRef.current) {
@@ -115,7 +214,6 @@ const ChatInterface = () => {
     });
   };
 
-  // 🧠 SEND TEXT FROM INPUT
   const sendMessage = () => {
     if (!input.trim()) return;
 
@@ -131,12 +229,26 @@ const ChatInterface = () => {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Avatar */}
-      <div className="flex items-center justify-center py-6">
+      <div className="flex justify-between items-center px-6 py-4">
+
+        <div className="flex flex-col items-center">
+          <Webcam
+            ref={webcamRef}
+            screenshotFormat="image/jpeg"
+            width={160}
+            className="rounded-xl border border-cyan"
+          />
+          <p className="text-xs mt-2 capitalize">
+            Emotion: {currentEmotion}
+          </p>
+          <p className="text-xs text-caption">
+            Confidence: {confidence ? confidence.toFixed(2) + "%" : "--"}
+          </p>
+        </div>
+
         <AIVatar audioBlob={latestBlob} />
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 space-y-4 pb-4">
         <AnimatePresence>
           {messages.map((msg) => (
@@ -162,7 +274,6 @@ const ChatInterface = () => {
         </AnimatePresence>
       </div>
 
-      {/* Input */}
       <div className="p-4 border-t border-border/50">
         <div className="flex items-center gap-2 glass rounded-xl px-4 py-2">
           <Camera className="w-4 h-4" />
@@ -191,14 +302,11 @@ const ChatInterface = () => {
         </div>
       </div>
 
-      {/* 🎤 VOICE MODAL */}
       {showVoiceModal && (
         <VoiceModal
           onStop={async () => {
             const blob = await stopRecording();
-            if (blob) {
-              await sendVoiceMessage(blob);
-            }
+            if (blob) await sendVoiceMessage(blob);
             setShowVoiceModal(false);
           }}
           onCancel={() => {
