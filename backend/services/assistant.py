@@ -3,18 +3,17 @@ import os
 import io
 from dotenv import load_dotenv
 from sarvamai import SarvamAI
+from services.memory import get_memory
 
 load_dotenv(dotenv_path=".env", override=True)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 
-print(f"sarvam:{SARVAM_API_KEY}")
-
 sarvam_client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
 
-# -------------------- STRONG EMOTION-AWARE SYSTEM PROMPT --------------------
+# -------------------- SYSTEM PROMPT --------------------
 
 def build_system_prompt(emotion: str):
     emotion = (emotion or "neutral").lower()
@@ -27,27 +26,22 @@ The user's facial emotion detected from the camera is: {emotion}.
 IMPORTANT RULES:
 - Start the conversation naturally based on this emotion.
 - Do NOT say you are an AI model.
-- Do NOT say you don't have emotions.
 - Be warm, human-like, and caring.
-- Keep responses short and conversational (2–4 sentences max).
-
-Emotion Handling Guide:
-- sad → Be empathetic and supportive.
-- happy → Be energetic and celebrate.
-- angry → Be calming and de-escalate.
-- fear → Reassure and provide comfort.
-- surprise → Be curious and engaging.
-- disgust → Be understanding and gentle.
-- neutral → Gently check in and ask how they feel.
-
-Always respond like you are directly talking to the user.
+- Keep responses short (2–4 sentences max).
 """
 
 
-# -------------------- LLM CALL --------------------
+# -------------------- LLM CALL WITH MEMORY --------------------
 
-def generate_ai_response(user_text, emotion=None):
+def generate_ai_response(user_text, emotion, memory):
+
     system_prompt = build_system_prompt(emotion)
+
+    # Add user message to memory
+    memory.append({
+        "role": "user",
+        "content": user_text
+    })
 
     response = requests.post(
         "https://api.groq.com/openai/v1/chat/completions",
@@ -62,10 +56,7 @@ def generate_ai_response(user_text, emotion=None):
                     "role": "system",
                     "content": system_prompt
                 },
-                {
-                    "role": "user",
-                    "content": user_text
-                }
+                *memory  # 🔥 send only trimmed memory
             ],
             "temperature": 0.7,
             "max_tokens": 200
@@ -76,7 +67,15 @@ def generate_ai_response(user_text, emotion=None):
         raise Exception(f"Groq API Error: {response.text}")
 
     data = response.json()
-    return data["choices"][0]["message"]["content"]
+    reply = data["choices"][0]["message"]["content"]
+
+    # Add assistant reply to memory
+    memory.append({
+        "role": "assistant",
+        "content": reply
+    })
+
+    return reply
 
 
 # -------------------- MAIN PROCESS FUNCTION --------------------
@@ -85,6 +84,7 @@ async def process_assistant(request, audio):
 
     user_text = None
     emotion = "neutral"
+    session_id = "default"
 
     # -------------------- VOICE INPUT --------------------
     if audio:
@@ -101,20 +101,26 @@ async def process_assistant(request, audio):
 
         form_data = await request.form()
         emotion = form_data.get("emotion", "neutral")
+        session_id = form_data.get("session_id", "default")
 
     # -------------------- TEXT INPUT --------------------
     else:
         body = await request.json()
         user_text = body.get("text")
         emotion = body.get("emotion", "neutral")
+        session_id = body.get("session_id", "default")
 
     if not user_text:
         return {"error": "No input provided"}
 
     print("Emotion received:", emotion)
+    print("Session:", session_id)
+
+    # 🔥 Get memory for this session
+    memory = get_memory(session_id)
 
     # -------------------- GENERATE RESPONSE --------------------
-    ai_reply = generate_ai_response(user_text, emotion)
+    ai_reply = generate_ai_response(user_text, emotion, memory)
 
     # -------------------- TEXT TO SPEECH --------------------
     try:

@@ -23,8 +23,8 @@ export default function Avatar({ onReady }) {
   return (
     <group
       ref={group}
-      position={[0, -2.5, 0]}   // centered
-      rotation={[0, 0, 0]}      // straight
+      position={[-0.10, -2.5, 0]}   // centered
+      rotation={[0, -0.0, 0]}      // straight
     >
       <primitive object={scene} scale={1.6} />
     </group>

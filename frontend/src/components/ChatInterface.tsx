@@ -15,6 +15,9 @@ interface Message {
 const ChatInterface = () => {
   const webcamRef = useRef<Webcam>(null);
 
+  // ✅ NEW: session id for backend memory
+  const sessionId = useRef(crypto.randomUUID());
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -30,93 +33,49 @@ const ChatInterface = () => {
 
   const [currentEmotion, setCurrentEmotion] = useState<string>("neutral");
   const [confidence, setConfidence] = useState<number | null>(null);
-
-  // 🔥 prevents repeated auto-trigger
+  const [selectedAvatarIndex, setSelectedAvatarIndex] = useState<number>(0);
   const [hasStartedConversation, setHasStartedConversation] = useState(false);
+
+  const avatars = [
+    "Avatar 1",
+    "Avatar 2",
+    "Avatar 3",
+    "Avatar 4",
+    "Avatar 5",
+    "Avatar 6",
+    "Avatar 7",
+    "Avatar 8",
+  ];
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
 
-  // 🔊 Play backend audio
-  // 🔊 Play backend audio + Lip Sync FIX
-const playAudioFromBase64 = (base64Audio: string) => {
-  const byteCharacters = atob(base64Audio);
-  const byteNumbers = new Array(byteCharacters.length);
+  /* ===================== */
+  /* 🔊 AUDIO + LIP SYNC  */
+  /* ===================== */
+  const playAudioFromBase64 = (base64Audio: string) => {
+    const byteCharacters = atob(base64Audio);
+    const byteNumbers = new Array(byteCharacters.length);
 
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-
-  const byteArray = new Uint8Array(byteNumbers);
-  const blob = new Blob([byteArray], { type: "audio/wav" });
-
-  // 🔥 This drives AIVatar lip sync
-  setLatestBlob(blob);
-
-  // 🔥 This plays the audio
-  const audioUrl = URL.createObjectURL(blob);
-  const audio = new Audio(audioUrl);
-  audio.play().catch(console.error);
-};
-
-  // 🧠 Emotion-based conversation starter
-  const triggerEmotionConversation = async (emotion: string) => {
-    let starterText = "";
-
-    switch (emotion) {
-      case "sad":
-        starterText = "You seem a little down. Want to talk about it?";
-        break;
-      case "happy":
-        starterText = "You look happy today! What's making you smile?";
-        break;
-      case "angry":
-        starterText = "I sense some frustration. Do you want to share what happened?";
-        break;
-      case "fear":
-        starterText = "You seem a bit anxious. I'm here with you. What's going on?";
-        break;
-      case "surprise":
-        starterText = "You look surprised! Something unexpected happened?";
-        break;
-      case "disgust":
-        starterText = "Something doesn't feel right? Tell me what's bothering you.";
-        break;
-      case "neutral":
-      default:
-        starterText = "How are you feeling right now?";
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
 
-    try {
-      const response = await fetch("http://127.0.0.1:8000/assistant", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: starterText,
-          emotion: emotion,
-        }),
-      });
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: "audio/wav" });
 
-      const data = await response.json();
-
-      setMessages((prev) => [
-        ...prev,
-        { id: Date.now(), text: data.reply, sender: "aura" },
-      ]);
-
-      if (data.audio) playAudioFromBase64(data.audio);
-    } catch (err) {
-      console.error("Auto conversation failed:", err);
-    }
+    // 🔥 Drives lip sync ONLY
+    setLatestBlob(blob);
   };
 
-  // 🔥 CONTINUOUS EMOTION DETECTION + AUTO START
+  /* ===================== */
+  /* 🧠 EMOTION DETECTION  */
+  /* ===================== */
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
     const detectEmotion = async () => {
       if (!webcamRef.current) return;
-
       const imageSrc = webcamRef.current.getScreenshot();
       if (!imageSrc) return;
 
@@ -129,42 +88,30 @@ const playAudioFromBase64 = (base64Audio: string) => {
 
         const data = await response.json();
 
-        if (data.results && data.results.length > 0) {
+        if (data.results?.length > 0) {
           const result = data.results[0];
-
-          const detectedEmotion = result.emotion;
-          const detectedConfidence = result.confidence;
-
-          setCurrentEmotion(detectedEmotion);
-          setConfidence(detectedConfidence);
-
-          // 🔥 Auto-start once (professional logic)
-          if (
-            !hasStartedConversation &&
-            detectedConfidence > 60 &&
-            detectedEmotion !== "neutral"
-          ) {
-            triggerEmotionConversation(detectedEmotion);
-            setHasStartedConversation(true);
-          }
+          setCurrentEmotion(result.emotion);
+          setConfidence(result.confidence);
         }
       } catch (err) {
-        console.error("Emotion detection error:", err);
+        console.error(err);
       }
     };
 
     const timeout = setTimeout(() => {
       detectEmotion();
-      interval = setInterval(detectEmotion, 2000); // every 2 sec
+      interval = setInterval(detectEmotion, 2000);
     }, 2000);
 
     return () => {
       clearTimeout(timeout);
       clearInterval(interval);
     };
-  }, [hasStartedConversation]);
+  }, []);
 
-  // 🧠 TEXT MESSAGE
+  /* ===================== */
+  /* 🧠 SEND TEXT MESSAGE  */
+  /* ===================== */
   const sendTextMessage = async (text: string) => {
     setLoading(true);
 
@@ -174,6 +121,7 @@ const playAudioFromBase64 = (base64Audio: string) => {
       body: JSON.stringify({
         text,
         emotion: currentEmotion,
+        session_id: sessionId.current, // ✅ NEW
       }),
     });
 
@@ -189,13 +137,18 @@ const playAudioFromBase64 = (base64Audio: string) => {
     setLoading(false);
   };
 
-  // 🎤 VOICE MESSAGE
+  /* ===================== */
+  /* 🎤 SEND VOICE MESSAGE */
+  /* ===================== */
   const sendVoiceMessage = async (audioBlob: Blob) => {
     setLoading(true);
+
+    // setLatestBlob(audioBlob);
 
     const formData = new FormData();
     formData.append("audio", audioBlob, "recording.wav");
     formData.append("emotion", currentEmotion);
+    formData.append("session_id", sessionId.current); // ✅ NEW
 
     const response = await fetch("http://127.0.0.1:8000/assistant", {
       method: "POST",
@@ -237,8 +190,9 @@ const playAudioFromBase64 = (base64Audio: string) => {
       }
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(audioChunks.current, { type: "audio/mpeg" });
-        setLatestBlob(blob);
+        const blob = new Blob(audioChunks.current, {
+          type: "audio/mpeg",
+        });
         resolve(blob);
       };
 
@@ -258,14 +212,21 @@ const playAudioFromBase64 = (base64Audio: string) => {
     setInput("");
   };
 
+  /* ===================== */
+  /* 🎨 UI LAYOUT          */
+  /* ===================== */
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center px-6 py-4">
+    <div className="flex h-full overflow-hidden">
+
+      {/* LEFT PANEL */}
+      <div className="w-[260px] flex flex-col items-center p-6 border-r border-border/50">
+
+        {/* Camera */}
         <div className="flex flex-col items-center">
           <Webcam
             ref={webcamRef}
             screenshotFormat="image/jpeg"
-            width={160}
+            width={180}
             className="rounded-xl border border-cyan"
           />
           <p className="text-xs mt-2 capitalize">
@@ -276,59 +237,114 @@ const playAudioFromBase64 = (base64Audio: string) => {
           </p>
         </div>
 
-        <AIVatar audioBlob={latestBlob} />
+        <div className="mt-14" />
+
+        {/* Smooth Vertical Carousel */}
+        <div
+          onWheel={(e) => {
+            e.preventDefault();
+
+            const sensitivity = 0.002;
+            setSelectedAvatarIndex((prev) => {
+              const next = prev + e.deltaY * sensitivity;
+              return Math.max(
+                0,
+                Math.min(next, avatars.length - 1)
+              );
+            });
+          }}
+          className="relative h-[320px] w-full flex items-center justify-center overflow-hidden"
+        >
+          <div className="relative h-full w-full flex items-center justify-center">
+            {avatars.map((avatar, index) => {
+              const offset = index - selectedAvatarIndex;
+              if (Math.abs(offset) > 2) return null;
+
+              const scale = 1 - Math.abs(offset) * 0.15;
+              const opacity = 1 - Math.abs(offset) * 0.3;
+
+              return (
+                <div
+                  key={index}
+                  onClick={() => setSelectedAvatarIndex(index)}
+                  className="absolute w-28 h-28 flex items-center justify-center rounded-full glass cursor-pointer transition-all duration-300 ease-out"
+                  style={{
+                    transform: `
+                      translateY(${offset * 100}px)
+                      scale(${scale})
+                      rotateX(${offset * -18}deg)
+                    `,
+                    opacity,
+                    zIndex: 10 - Math.abs(offset),
+                  }}
+                >
+                  <span className="text-sm">{avatar}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 space-y-4 pb-4">
-        <AnimatePresence>
-          {messages.map((msg) => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex ${
-                msg.sender === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              <div
-                className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm ${
+      {/* CENTER AVATAR */}
+      <div className="flex flex-1 items-center justify-center">
+        <div className="scale-125">
+          <AIVatar audioBlob={latestBlob} />
+        </div>
+      </div>
+
+      {/* RIGHT PANEL */}
+      <div className="w-[400px] flex flex-col border-l border-border/50">
+        <div className="flex-1 overflow-y-auto px-4 space-y-4 py-4">
+          <AnimatePresence>
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${
                   msg.sender === "user"
-                    ? "gradient-bg-cyan text-primary-foreground"
-                    : "glass text-foreground"
+                    ? "justify-end"
+                    : "justify-start"
                 }`}
               >
-                {msg.text}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+                <div
+                  className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm ${
+                    msg.sender === "user"
+                      ? "gradient-bg-cyan text-primary-foreground"
+                      : "glass text-foreground"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
 
-      <div className="p-4 border-t border-border/50">
-        <div className="flex items-center gap-2 glass rounded-xl px-4 py-2">
-          <Camera className="w-4 h-4" />
-
-          <button
-            onClick={() => {
-              setShowVoiceModal(true);
-              startRecording();
-            }}
-            className="p-2 text-cyan"
-          >
-            <Mic className="w-4 h-4" />
-          </button>
-
-          <input
-            className="flex-1 bg-transparent text-sm outline-none"
-            placeholder="Tell AURA how you're feeling..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          />
-
-          <button onClick={sendMessage} className="p-2 text-cyan">
-            <Send className="w-4 h-4" />
-          </button>
+        <div className="p-4 border-t border-border/50">
+          <div className="flex items-center gap-2 glass rounded-xl px-4 py-2">
+            <Camera className="w-4 h-4" />
+            <button
+              onClick={() => {
+                setShowVoiceModal(true);
+                startRecording();
+              }}
+              className="p-2 text-cyan"
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+            <input
+              className="flex-1 bg-transparent text-sm outline-none"
+              placeholder="Tell AURA how you're feeling..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            />
+            <button onClick={sendMessage} className="p-2 text-cyan">
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -336,14 +352,8 @@ const playAudioFromBase64 = (base64Audio: string) => {
         <VoiceModal
           onStop={async () => {
             const blob = await stopRecording();
-
-            // ✅ Close immediately
             setShowVoiceModal(false);
-
-            // ✅ Send in background
-            if (blob) {
-              sendVoiceMessage(blob);
-            }
+            if (blob) sendVoiceMessage(blob);
           }}
           onCancel={() => {
             mediaRecorderRef.current?.stop();

@@ -8,6 +8,9 @@ import base64
 from tensorflow.keras.models import model_from_json
 from collections import deque
 
+# 🔥 NEW (for session memory)
+from services.memory import get_memory   # <-- only new line
+
 app = FastAPI()
 
 # -------------------- CORS --------------------
@@ -43,21 +46,16 @@ emotion_history = deque(maxlen=5)
 def load_emotion_model():
     global model, face_cascade
 
-    # Load model
     with open("models/facialemotionmodel.json", "r") as json_file:
         model_json = json_file.read()
 
     model = model_from_json(model_json)
     model.load_weights("models/facialemotionmodel.h5")
 
-    # Load Haar cascade
     haar_file = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     face_cascade = cv2.CascadeClassifier(haar_file)
 
     print("Emotion Model Loaded Successfully!")
-
-
-
 
 # -------------------- HELPER FUNCTIONS --------------------
 
@@ -72,7 +70,6 @@ def calculate_stress(pred_probs):
     fear = pred_probs[2]
     sad = pred_probs[5]
     disgust = pred_probs[1]
-
     stress = (angry + fear + sad + disgust) * 100
     return int(stress)
 
@@ -110,6 +107,7 @@ def decide_avatar_mode(confidence, stable_emotion, stress):
 
 @app.post("/assistant")
 async def assistant_endpoint(request: Request, audio: UploadFile = File(None)):
+    # Memory will be handled inside process_assistant
     return await process_assistant(request, audio)
 
 # -------------------- EMOTION ENDPOINT --------------------
@@ -124,7 +122,6 @@ async def emotion_endpoint(request: Request):
     if not image_base64:
         return {"error": "No image provided"}
 
-    # Decode base64 image
     img_data = base64.b64decode(image_base64.split(",")[1])
     np_arr = np.frombuffer(img_data, np.uint8)
     frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)

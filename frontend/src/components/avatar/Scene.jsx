@@ -7,7 +7,7 @@ import Avatar from "./Avatar";
 export default function Scene({ onAvatarReady }) {
   return (
     <Canvas
-      camera={{ position: [0, 0.6, 1.8], fov: 35 }}
+      camera={{ position: [0, 0.4, 1.8], fov: 35 }}
       dpr={[1, 2]}
       gl={{ antialias: true }}
       style={{ background: "transparent" }}
