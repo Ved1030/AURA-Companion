@@ -120,7 +120,7 @@ async def process_assistant(request, audio):
             target_language_code="en-IN",
             text=ai_reply,
             model="bulbul:v3",
-            speaker="ishita"
+            speaker="shubh"
         )
 
         audio_base64 = tts_response.audios[0]

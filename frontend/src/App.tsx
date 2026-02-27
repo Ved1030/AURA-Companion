@@ -2,12 +2,21 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+} from "react-router-dom";
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import AppSidebar from "@/components/AppSidebar";
-import Index from "./pages/Index";
+
+/* ====== PAGES ====== */
+import Landing from "./pages/Landing";
+import Dashboard from "./pages/Dashboard";
 import Chat from "./pages/Chat";
 import Analytics from "./pages/Analytics";
 import Recommendations from "./pages/Recommendations";
@@ -29,61 +38,79 @@ import Signup from "./pages/Signup";
 
 const queryClient = new QueryClient();
 
-/* 🔒 Protected Wrapper */
-const AppContent = () => {
+/* =========================
+   🔒 Protected Route Wrapper
+========================= */
+const ProtectedRoute = () => {
   const { user } = useAuth();
-  const location = useLocation();
 
-  const isAuthPage =
-    location.pathname === "/login" ||
-    location.pathname === "/signup";
-
-  if (!user && !isAuthPage) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
+  return <Outlet />;
+};
+
+/* =========================
+   📦 Layout for App Area
+========================= */
+const AppLayout = () => {
   return (
     <div className="flex min-h-screen w-full bg-background">
-      {/* Hide Sidebar on Login/Signup */}
-      {!isAuthPage && <AppSidebar />}
-
+      <AppSidebar />
       <main className="flex-1 min-w-0 h-screen overflow-hidden bg-card">
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-
-          {/* Protected Routes */}
-          <Route path="/" element={<Index />} />
-          <Route path="/chat" element={<Chat />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/games" element={<GamesPage />} />
-          <Route path="/games/breathing" element={<BreathingGame />} />
-          <Route path="/games/memory" element={<MemoryGame />} />
-          <Route path="/games/gratitude" element={<GratitudeGame />} />
-          <Route path="/games/maze" element={<MazeGame />} />
-          <Route path="/games/color" element={<ColorGame />} />
-          <Route path="/games/zen" element={<ZenGame />} />
-          <Route path="/therapy" element={<TherapyPage />} />
-          <Route path="/recommendations" element={<Recommendations />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Outlet />
       </main>
     </div>
   );
 };
 
+/* =========================
+   🚀 MAIN APP
+========================= */
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
         <Toaster />
         <Sonner />
+
         <BrowserRouter>
-          <AppContent />
+          <Routes>
+
+            {/* ===== PUBLIC ROUTES ===== */}
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+
+            {/* ===== PROTECTED APP ROUTES ===== */}
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppLayout />}>
+
+                <Route path="/app" element={<Dashboard />} />
+                <Route path="/app/chat" element={<Chat />} />
+                <Route path="/app/analytics" element={<Analytics />} />
+                <Route path="/app/calendar" element={<Calendar />} />
+                <Route path="/app/games" element={<GamesPage />} />
+                <Route path="/app/games/breathing" element={<BreathingGame />} />
+                <Route path="/app/games/memory" element={<MemoryGame />} />
+                <Route path="/app/games/gratitude" element={<GratitudeGame />} />
+                <Route path="/app/games/maze" element={<MazeGame />} />
+                <Route path="/app/games/color" element={<ColorGame />} />
+                <Route path="/app/games/zen" element={<ZenGame />} />
+                <Route path="/app/therapy" element={<TherapyPage />} />
+                <Route path="/app/recommendations" element={<Recommendations />} />
+                <Route path="/app/settings" element={<SettingsPage />} />
+
+              </Route>
+            </Route>
+
+            {/* ===== 404 ===== */}
+            <Route path="*" element={<NotFound />} />
+
+          </Routes>
         </BrowserRouter>
+
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

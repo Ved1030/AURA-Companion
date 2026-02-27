@@ -1,5 +1,4 @@
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   MessageCircle,
@@ -13,24 +12,23 @@ import {
 } from "lucide-react";
 import AuraOrb from "./AuraOrb";
 
+/* ✅ All routes now under /app */
 const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Chat with AURA", url: "/chat", icon: MessageCircle },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Wellness", url: "/recommendations", icon: Sparkles },
-  { title: "Calendar", url: "/calendar", icon: CalendarDays },
-  { title: "Games", url: "/games", icon: Gamepad2 },
-  { title: "Therapy", url: "/therapy", icon: Stethoscope }, // ✅ Added
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Dashboard", url: "/app", icon: LayoutDashboard },
+  { title: "Chat with AURA", url: "/app/chat", icon: MessageCircle },
+  { title: "Analytics", url: "/app/analytics", icon: BarChart3 },
+  { title: "Wellness", url: "/app/recommendations", icon: Sparkles },
+  { title: "Calendar", url: "/app/calendar", icon: CalendarDays },
+  { title: "Games", url: "/app/games", icon: Gamepad2 },
+  { title: "Therapy", url: "/app/therapy", icon: Stethoscope },
+  { title: "Settings", url: "/app/settings", icon: Settings },
 ];
 
 const AppSidebar = () => {
-  const location = useLocation();
-
   return (
     <aside className="w-[260px] min-h-screen bg-sidebar flex flex-col border-r border-border/50 shrink-0">
 
-      {/* Logo */}
+      {/* ================= LOGO ================= */}
       <div className="px-6 py-6 flex items-center gap-3">
         <Brain className="w-8 h-8 text-primary" />
         <div>
@@ -43,7 +41,7 @@ const AppSidebar = () => {
         </div>
       </div>
 
-      {/* Mini Orb */}
+      {/* ================= MINI ORB ================= */}
       <div className="flex justify-center py-4">
         <AuraOrb size="sm" emotion="calm" />
       </div>
@@ -51,14 +49,14 @@ const AppSidebar = () => {
         Feeling: Calm
       </p>
 
-      {/* Navigation */}
+      {/* ================= NAVIGATION ================= */}
       <nav className="flex-1 px-3 space-y-1">
         {navItems.map((item) => (
           <NavLink
             key={item.url}
             to={item.url}
-            end={item.url === "/"}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+            end={item.url === "/app"}  
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-muted-foreground hover:bg-muted/50 transition-all duration-200"
             activeClassName="bg-muted text-primary font-medium"
           >
             <item.icon className="w-4 h-4" />
@@ -67,7 +65,7 @@ const AppSidebar = () => {
         ))}
       </nav>
 
-      {/* Status Card */}
+      {/* ================= STATUS CARD ================= */}
       <div className="p-4 mx-3 mb-4 glass rounded-xl">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
@@ -79,6 +77,7 @@ const AppSidebar = () => {
           Multimodal analysis ready
         </p>
       </div>
+
     </aside>
   );
 };

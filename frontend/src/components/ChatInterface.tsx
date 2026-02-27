@@ -237,7 +237,7 @@ const playAudioFromBase64 = (base64Audio: string) => {
       }
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(audioChunks.current, { type: "audio/wav" });
+        const blob = new Blob(audioChunks.current, { type: "audio/mpeg" });
         setLatestBlob(blob);
         resolve(blob);
       };
