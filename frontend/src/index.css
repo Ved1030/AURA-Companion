@@ -202,3 +202,34 @@
     color: hsl(var(--foreground-subtle));
   }
 }
+
+/* ─────────────────────────────────────────────
+   CUSTOM SCROLLBAR (Modern Clean)
+───────────────────────────────────────────── */
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E5E7EB; /* soft gray */
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D1D5DB;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #E5E7EB transparent;
+}

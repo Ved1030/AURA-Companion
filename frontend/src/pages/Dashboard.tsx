@@ -69,7 +69,7 @@ const Index = () => {
       variants={container}
       initial="hidden"
       animate="show"
-      className="min-h-screen bg-[#F3ECE6] p-6 lg:p-10 space-y-10"
+      className="min-h-screen bg-[#FFFFFF] p-6 lg:p-10 space-y-10"
     >
 
       {/* HEADER */}

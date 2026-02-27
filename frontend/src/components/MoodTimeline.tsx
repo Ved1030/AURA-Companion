@@ -1,47 +1,113 @@
-import { motion } from "framer-motion";
+import { useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
-const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const moodData = [
-  { day: "Mon", happy: 60, calm: 70, stressed: 30, score: 72 },
-  { day: "Tue", happy: 55, calm: 65, stressed: 40, score: 65 },
-  { day: "Wed", happy: 75, calm: 80, stressed: 15, score: 82 },
-  { day: "Thu", happy: 50, calm: 60, stressed: 50, score: 55 },
-  { day: "Fri", happy: 80, calm: 85, stressed: 10, score: 88 },
-  { day: "Sat", happy: 90, calm: 90, stressed: 5, score: 93 },
-  { day: "Sun", happy: 72, calm: 85, stressed: 23, score: 78 },
+const weeklyData = [
+  { day: "Mon", score: 72 },
+  { day: "Tue", score: 80 },
+  { day: "Wed", score: 65 },
+  { day: "Thu", score: 78 },
+  { day: "Fri", score: 88 },
+  { day: "Sat", score: 90 },
+  { day: "Sun", score: 76 },
 ];
 
-const MoodTimeline = () => {
-  return (
-    <div className="glass rounded-2xl p-6">
-      <h3 className="text-sm font-semibold text-foreground mb-1">Weekly Mood Timeline</h3>
-      <p className="text-xs text-caption mb-6">Your emotional journey this week</p>
+const monthlyData = [
+  { day: "Week 1", score: 70 },
+  { day: "Week 2", score: 75 },
+  { day: "Week 3", score: 82 },
+  { day: "Week 4", score: 78 },
+];
 
-      {/* Simple bar chart */}
-      <div className="flex items-end justify-between gap-2 h-40 mb-4">
-        {moodData.map((d, i) => (
-          <div key={d.day} className="flex-1 flex flex-col items-center gap-2">
-            <motion.div
-              className="w-full rounded-t-lg gradient-bg-cyan opacity-80"
-              initial={{ height: 0 }}
-              animate={{ height: `${d.score}%` }}
-              transition={{ duration: 0.8, delay: i * 0.1 }}
-            />
-            <span className="text-[10px] text-caption">{d.day}</span>
-          </div>
-        ))}
+export default function MoodTimeline() {
+  const [mode, setMode] = useState<"weekly" | "monthly">("weekly");
+
+  const data = mode === "weekly" ? weeklyData : monthlyData;
+
+  const average =
+    Math.round(
+      data.reduce((acc, curr) => acc + curr.score, 0) / data.length
+    ) || 0;
+
+  return (
+    <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-inner">
+
+      {/* Toggle */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {mode === "weekly"
+              ? "Weekly Mood Timeline"
+              : "Monthly Mood Timeline"}
+          </h3>
+          <p className="text-sm text-gray-600">
+            {mode === "weekly"
+              ? "Your emotional journey this week"
+              : "Your emotional trend this month"}
+          </p>
+        </div>
+
+        <div className="flex bg-white rounded-full p-1 shadow-sm">
+          <button
+            onClick={() => setMode("weekly")}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+              mode === "weekly"
+                ? "bg-gradient-to-r from-[#F8E0C2] to-[#F5D6FF]"
+                : "text-gray-600"
+            }`}
+          >
+            Weekly
+          </button>
+          <button
+            onClick={() => setMode("monthly")}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+              mode === "monthly"
+                ? "bg-gradient-to-r from-[#F8E0C2] to-[#F5D6FF]"
+                : "text-gray-600"
+            }`}
+          >
+            Monthly
+          </button>
+        </div>
       </div>
 
-      {/* Legend */}
-      <div className="flex items-center gap-4 mt-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-cyan" />
-          <span className="text-[10px] text-caption">Wellness Score</span>
-        </div>
-        <span className="text-xs text-cyan font-semibold">Avg: 76%</span>
+      {/* Chart */}
+      <div className="h-72 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <XAxis dataKey="day" stroke="#6B7280" />
+            <YAxis domain={[50, 100]} stroke="#6B7280" />
+            <Tooltip
+              contentStyle={{
+                borderRadius: "1rem",
+                border: "none",
+                boxShadow: "0 8px 30px rgba(0,0,0,0.1)",
+              }}
+            />
+            <Line
+              type="monotone"
+              dataKey="score"
+              stroke="#C084FC"
+              strokeWidth={4}
+              dot={{ r: 6 }}
+              activeDot={{ r: 8 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Average Score */}
+      <div className="mt-6 text-sm text-gray-700">
+        Wellness Score <span className="font-semibold ml-2">Avg: {average}%</span>
       </div>
     </div>
   );
-};
-
-export default MoodTimeline;
+}
