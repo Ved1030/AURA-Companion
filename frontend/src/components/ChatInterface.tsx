@@ -132,8 +132,12 @@ const ChatInterface = () => {
       { id: Date.now(), text: data.reply, sender: "aura" },
     ]);
 
-    if (data.audio) playAudioFromBase64(data.audio);
-
+if (data.audio) {
+  console.log("✅ Backend audio received");
+  playAudioFromBase64(data.audio);
+} else {
+  console.log("❌ No audio returned from backend");
+}
     setLoading(false);
   };
 
@@ -303,9 +307,7 @@ const ChatInterface = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`flex ${
-                  msg.sender === "user"
-                    ? "justify-end"
-                    : "justify-start"
+                  msg.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
                 <div

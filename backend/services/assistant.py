@@ -10,6 +10,8 @@ load_dotenv(dotenv_path=".env", override=True)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 
+print(f"sarvam key:{SARVAM_API_KEY}")
+
 sarvam_client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
 
@@ -127,8 +129,8 @@ async def process_assistant(request, audio):
         tts_response = sarvam_client.text_to_speech.convert(
             target_language_code="en-IN",
             text=ai_reply,
-            model="bulbul:v3",
-            speaker="shubh"
+            model="bulbul:v2",
+            speaker="anushka"
         )
 
         audio_base64 = tts_response.audios[0]
@@ -136,6 +138,11 @@ async def process_assistant(request, audio):
     except Exception as e:
         print("TTS Error:", str(e))
         audio_base64 = None
+
+    print("=== DEBUG RESPONSE ===")
+    print("Reply:", ai_reply)
+    print("Audio is None?", audio_base64 is None)
+    print("======================")
 
     return {
         "emotion_detected": emotion,
