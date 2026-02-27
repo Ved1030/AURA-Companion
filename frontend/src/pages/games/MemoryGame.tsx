@@ -106,7 +106,7 @@ export default function MemoryGame() {
 
       {/* Back */}
       <button
-        onClick={() => navigate("/games")}
+        onClick={() => navigate("/app/games")}
         className="absolute top-6 left-6 flex items-center gap-2 text-sm text-primary"
       >
         <ArrowLeft className="w-4 h-4" />

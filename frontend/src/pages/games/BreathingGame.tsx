@@ -12,7 +12,7 @@ export default function BreathingGame() {
   const [scale, setScale] = useState(1);
   const [cycles, setCycles] = useState(0);
 
-  // Timer countdown
+  /* ================= TIMER ================= */
   useEffect(() => {
     if (phase === "idle" || phase === "complete") return;
     if (timeLeft <= 0) {
@@ -27,7 +27,7 @@ export default function BreathingGame() {
     return () => clearInterval(interval);
   }, [phase, timeLeft]);
 
-  // Breathing phase loop
+  /* ================= BREATH LOOP ================= */
   useEffect(() => {
     if (phase === "idle" || phase === "complete") return;
 
@@ -71,76 +71,90 @@ export default function BreathingGame() {
   };
 
   return (
-    <div className="p-6 lg:p-10 h-full flex flex-col items-center justify-center space-y-10 relative">
+    <div className="min-h-screen bg-[#F3ECE6] flex flex-col items-center justify-center p-8 relative space-y-12">
 
       {/* Back Button */}
       <button
-        onClick={() => navigate("/games")}
-        className="absolute top-6 left-6 flex items-center gap-2 text-sm text-primary hover:opacity-80"
+        onClick={() => navigate("/app/games")}
+        className="absolute top-6 left-6 flex items-center gap-2 text-sm font-medium text-[#C060B0] hover:opacity-80"
       >
         <ArrowLeft className="w-4 h-4" />
         Back
       </button>
 
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold gradient-cyan-lavender">
+      <div className="text-center space-y-3">
+        <h1 className="text-4xl font-black text-gray-900">
           Breathing Bubbles
         </h1>
-        <p className="text-sm text-caption">
+        <p className="text-gray-600 text-sm">
           Calm your nervous system with guided breathing
         </p>
       </div>
 
       {/* Breathing Orb */}
       <div className="relative flex items-center justify-center">
+
+        {/* Glow Layer */}
+        <div className="absolute w-72 h-72 rounded-full bg-[#D5D2FD] opacity-40 blur-3xl" />
+
+        {/* Animated Bubble */}
         <div
-          className="rounded-full bg-gradient-to-br from-primary/30 to-secondary/30 transition-all duration-[4000ms] ease-in-out"
+          className="rounded-full bg-gradient-to-br from-[#F8E0C2] via-[#F0C7C3] to-[#D5D2FD] shadow-xl transition-all duration-[4000ms] ease-in-out"
           style={{
             width: 240,
             height: 240,
             transform: `scale(${scale})`,
           }}
         />
-        <div className="absolute text-center">
-          <p className="text-lg font-semibold text-heading">
+
+        <div className="absolute text-center px-6">
+          <p className="text-xl font-semibold text-gray-800">
             {getInstruction()}
           </p>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="glass rounded-3xl p-6 w-80 text-center space-y-3">
-        <p className="text-sm text-caption">
-          Time Remaining: <span className="text-heading">{timeLeft}s</span>
+      {/* Stats Card */}
+      <div className="bg-white rounded-[2rem] p-6 w-80 text-center space-y-3 shadow-md border border-white/80">
+        <p className="text-sm text-gray-600">
+          Time Remaining:
+          <span className="text-gray-900 font-semibold ml-2">
+            {timeLeft}s
+          </span>
         </p>
-        <p className="text-sm text-caption">
-          Completed Cycles: <span className="text-primary font-semibold">{cycles}</span>
+
+        <p className="text-sm text-gray-600">
+          Completed Cycles:
+          <span className="text-[#C060B0] font-semibold ml-2">
+            {cycles}
+          </span>
         </p>
       </div>
 
-      {/* Controls */}
+      {/* Start Button */}
       {phase === "idle" && (
         <button
           onClick={startSession}
-          className="bg-primary text-primary-foreground px-8 py-3 rounded-2xl flex items-center gap-2 hover:opacity-90 transition"
+          className="px-8 py-3 rounded-2xl bg-gradient-to-r from-[#F8E0C2] to-[#D5D2FD] text-gray-900 font-semibold flex items-center gap-2 shadow-md hover:scale-105 transition"
         >
           <Play className="w-4 h-4" />
           Start Session
         </button>
       )}
 
+      {/* Complete Card */}
       {phase === "complete" && (
-        <div className="glass rounded-3xl p-6 text-center space-y-4">
-          <h3 className="text-lg font-semibold text-heading">
+        <div className="bg-white rounded-[2rem] p-6 text-center space-y-4 shadow-lg border border-white/80">
+          <h3 className="text-lg font-semibold text-gray-900">
             Great Work 🌿
           </h3>
-          <p className="text-sm text-caption">
+          <p className="text-sm text-gray-600">
             You completed {cycles} breathing cycles.
           </p>
           <button
             onClick={startSession}
-            className="bg-primary text-primary-foreground px-6 py-2 rounded-xl hover:opacity-90"
+            className="px-6 py-2 rounded-xl bg-gradient-to-r from-[#F8E0C2] to-[#D5D2FD] text-gray-900 font-medium hover:scale-105 transition"
           >
             Try Again
           </button>

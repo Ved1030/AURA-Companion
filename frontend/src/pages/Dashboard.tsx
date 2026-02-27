@@ -48,11 +48,8 @@ const Index = () => {
 
       if (data.results && data.results.length > 0) {
         const result = data.results[0];
-
         setEmotion(result.emotion);
         setConfidence(result.confidence);
-
-        // If you want full emotion distribution later
         setEmotions({
           [result.emotion]: result.confidence,
         });
@@ -72,74 +69,107 @@ const Index = () => {
       variants={container}
       initial="hidden"
       animate="show"
-      className="p-6 lg:p-8 space-y-6 overflow-y-auto h-full"
+      className="min-h-screen bg-[#F3ECE6] p-6 lg:p-10 space-y-10"
     >
-      {/* Header */}
+
+      {/* HEADER */}
       <motion.div variants={item}>
-        <h1 className="text-3xl font-bold gradient-cyan-lavender mb-1">
+        <h1 className="text-3xl font-black text-gray-900">
           Welcome Back
         </h1>
-        <p className="text-sm text-caption">
+        <p className="text-gray-600 font-medium mt-1">
           Here's your emotional wellness overview
         </p>
       </motion.div>
 
-      {/* Stats Row */}
+      {/* STATS GRID */}
       <motion.div
         variants={item}
-        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
       >
         {stats.map((s) => (
-          <StatsCard key={s.label} {...s} />
+          <div
+            key={s.label}
+            className="bg-white rounded-[2rem] p-6 shadow-md border border-white/80"
+          >
+            <StatsCard {...s} />
+          </div>
         ))}
       </motion.div>
 
-      {/* Camera + Orb Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+      {/* MAIN SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* LEFT */}
+        {/* LEFT - CAMERA + ORB */}
         <motion.div
           variants={item}
-          className="glass rounded-2xl p-8 flex flex-col items-center h-full"
+          className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 shadow-lg border border-white/80"
         >
-          <Webcam
-            ref={webcamRef}
-            screenshotFormat="image/jpeg"
-            width={220}
-            className="rounded-lg mb-6"
-          />
+          <div className="grid md:grid-cols-2 gap-8 items-center">
 
-          <AuraOrb emotion={emotion} size="lg" />
+            {/* Webcam */}
+            <div className="flex flex-col items-center">
+              <Webcam
+                ref={webcamRef}
+                screenshotFormat="image/jpeg"
+                width={240}
+                className="rounded-xl shadow-md mb-6"
+              />
 
-          <p className="text-sm font-medium mt-6">
-            Current State:
-            <span className="text-cyan capitalize ml-2">
-              {emotion}
-            </span>
-          </p>
+              <p className="text-sm font-semibold text-gray-700">
+                Current State:
+                <span className="ml-2 capitalize text-[#C060B0]">
+                  {emotion}
+                </span>
+              </p>
 
-          <p className="text-xs text-caption mt-1">
-            Confidence:{" "}
-            {confidence !== null ? `${confidence.toFixed(2)}%` : "--"}
-          </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Confidence:{" "}
+                {confidence !== null ? `${confidence.toFixed(2)}%` : "--"}
+              </p>
+            </div>
+
+            {/* Aura Orb */}
+            <div className="flex justify-center">
+              <AuraOrb emotion={emotion} size="lg" />
+            </div>
+
+          </div>
         </motion.div>
 
-        {/* RIGHT */}
-        <motion.div variants={item} className="flex h-full">
-          <div className="w-full flex flex-col justify-center">
-            <InputModes />
-          </div>
+        {/* RIGHT - INPUT MODES */}
+        <motion.div
+          variants={item}
+          className="bg-white rounded-[2.5rem] p-8 shadow-lg border border-white/80 flex flex-col justify-center"
+        >
+          <InputModes />
         </motion.div>
 
       </div>
 
-      {/* Emotion Panel */}
-      <motion.div variants={item}>
+      {/* EMOTION DISTRIBUTION PANEL */}
+      <motion.div
+        variants={item}
+        className="bg-white rounded-[2.5rem] p-8 shadow-md border border-white/80"
+      >
         <EmotionPanel emotions={emotions} />
       </motion.div>
 
-      {/* Weekly Timeline */}
-      <motion.div variants={item} className="glass rounded-2xl p-6">
+      {/* WEEKLY / MONTHLY TIMELINE SECTION */}
+      <motion.div
+        variants={item}
+        className="bg-gradient-to-br from-[#F8E0C2] via-[#F5D6FF] to-[#D5D2FD] rounded-[2.5rem] p-8 shadow-lg"
+      >
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900">
+            Mood Timeline
+          </h2>
+          <p className="text-sm text-gray-700">
+            Track your emotional pattern weekly and monthly
+          </p>
+        </div>
+
+        {/* This keeps your internal weekly/month toggle intact */}
         <MoodTimeline />
       </motion.div>
 
