@@ -336,8 +336,14 @@ const playAudioFromBase64 = (base64Audio: string) => {
         <VoiceModal
           onStop={async () => {
             const blob = await stopRecording();
-            if (blob) await sendVoiceMessage(blob);
+
+            // ✅ Close immediately
             setShowVoiceModal(false);
+
+            // ✅ Send in background
+            if (blob) {
+              sendVoiceMessage(blob);
+            }
           }}
           onCancel={() => {
             mediaRecorderRef.current?.stop();

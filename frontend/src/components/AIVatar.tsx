@@ -16,12 +16,12 @@ export default function AIVatar({ audioBlob }: Props) {
   };
 
   // When new audio arrives
-  useEffect(() => {
-    if (audioBlob) {
-      console.log("🎵 Audio blob received in AIVatar");
-      latestAudioRef.current = audioBlob;
-    }
-  }, [audioBlob]);
+  // useEffect(() => {
+  //   if (audioBlob) {
+  //     console.log("🎵 Audio blob received in AIVatar");
+  //     latestAudioRef.current = audioBlob;
+  //   }
+  // }, [audioBlob]);
 
   // When both lipSync + audio exist
   useEffect(() => {

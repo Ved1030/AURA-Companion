@@ -9,6 +9,8 @@ load_dotenv(dotenv_path=".env", override=True)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 
+print(f"sarvam:{SARVAM_API_KEY}")
+
 sarvam_client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
 
