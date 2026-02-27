@@ -9,7 +9,13 @@ from tensorflow.keras.models import model_from_json
 from collections import deque
 
 # 🔥 NEW (for session memory)
-from services.memory import get_memory   # <-- only new line
+from services.memory import get_memory
+
+# 🔥 NEW (for text & voice emotion)
+from transformers import pipeline
+import speech_recognition as sr
+import tempfile
+import os
 
 app = FastAPI()
 
@@ -39,6 +45,13 @@ labels = {
 }
 
 emotion_history = deque(maxlen=5)
+
+# 🔥 NEW: Load NLP emotion model once
+text_emotion_model = pipeline(
+    "text-classification",
+    model="j-hartmann/emotion-english-distilroberta-base",
+    top_k=None
+)
 
 # -------------------- STARTUP EVENTS --------------------
 
@@ -107,10 +120,9 @@ def decide_avatar_mode(confidence, stable_emotion, stress):
 
 @app.post("/assistant")
 async def assistant_endpoint(request: Request, audio: UploadFile = File(None)):
-    # Memory will be handled inside process_assistant
     return await process_assistant(request, audio)
 
-# -------------------- EMOTION ENDPOINT --------------------
+# -------------------- FACE EMOTION ENDPOINT --------------------
 
 @app.post("/emotion")
 async def emotion_endpoint(request: Request):
@@ -165,3 +177,63 @@ async def emotion_endpoint(request: Request):
         return {"message": "No face detected"}
 
     return {"results": results}
+
+# -------------------- TEXT EMOTION ENDPOINT --------------------
+from pydantic import BaseModel
+
+class TextInput(BaseModel):
+    text: str
+@app.post("/text-emotion")
+async def text_emotion_endpoint(data: TextInput):
+
+    if not data.text:
+        return {"error": "No text provided"}
+
+    prediction = text_emotion_model(data.text)[0]
+    top_emotion = max(prediction, key=lambda x: x['score'])
+
+    confidence = float(top_emotion["score"] * 100)
+
+    return {
+        "emotion": top_emotion["label"],
+        "confidence": round(confidence, 2)
+    }
+
+# -------------------- VOICE EMOTION ENDPOINT --------------------
+
+@app.post("/voice-emotion")
+async def voice_emotion_endpoint(audio: UploadFile = File(...)):
+    try:
+        # Save temp file as webm
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
+            tmp.write(await audio.read())
+            tmp_path = tmp.name
+
+        recognizer = sr.Recognizer()
+
+        # Convert webm → wav using ffmpeg (required)
+        wav_path = tmp_path.replace(".webm", ".wav")
+
+        os.system(f"ffmpeg -i {tmp_path} {wav_path} -y")
+
+        with sr.AudioFile(wav_path) as source:
+            audio_data = recognizer.record(source)
+
+        text = recognizer.recognize_google(audio_data)
+
+        os.remove(tmp_path)
+        os.remove(wav_path)
+
+        prediction = text_emotion_model(text)[0]
+        top_emotion = max(prediction, key=lambda x: x['score'])
+
+        confidence = float(top_emotion["score"] * 100)
+
+        return {
+            "transcribed_text": text,
+            "emotion": top_emotion["label"],
+            "confidence": round(confidence, 2)
+        }
+
+    except Exception as e:
+        return {"error": str(e)}

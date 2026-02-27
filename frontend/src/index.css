@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 @layer base {
   :root {
@@ -10,27 +10,36 @@
     /* ─────────────────────────────────────────────
        CORE BACKGROUND SYSTEM
     ───────────────────────────────────────────── */
-    --background: 32 35% 92%;           /* #F3ECE6 */
-    --background-subtle: 30 30% 96%;    /* softer lifted */
-    --background-raised: 0 0% 100%;     /* pure white */
+    --background: 32 35% 92%;
+    /* #F3ECE6 */
+    --background-subtle: 30 30% 96%;
+    /* softer lifted */
+    --background-raised: 0 0% 100%;
+    /* pure white */
 
-    --foreground: 220 25% 15%;          /* dark soft charcoal */
+    --foreground: 220 25% 15%;
+    /* dark soft charcoal */
     --foreground-muted: 220 15% 40%;
     --foreground-subtle: 220 10% 55%;
 
     /* ─────────────────────────────────────────────
        BRAND COLORS (PASTEL SYSTEM)
     ───────────────────────────────────────────── */
-    --primary: 25 85% 82%;              /* #F8E0C2 (peach) */
+    --primary: 25 85% 82%;
+    /* #F8E0C2 (peach) */
     --primary-strong: 18 70% 75%;
     --primary-foreground: 220 25% 15%;
 
-    --secondary: 270 65% 85%;           /* #D5D2FD (lavender) */
+    --secondary: 270 65% 85%;
+    /* #D5D2FD (lavender) */
     --secondary-foreground: 220 25% 15%;
 
-    --accent-rose: 350 60% 82%;         /* #F0C7C3 */
-    --accent-lilac: 290 70% 90%;        /* #F5D6FF */
-    --accent-yellow: 45 95% 85%;        /* #FCE8B3 */
+    --accent-rose: 350 60% 82%;
+    /* #F0C7C3 */
+    --accent-lilac: 290 70% 90%;
+    /* #F5D6FF */
+    --accent-yellow: 45 95% 85%;
+    /* #FCE8B3 */
 
     /* ─────────────────────────────────────────────
        CARD / SURFACE
@@ -48,26 +57,22 @@
     --glass-bg: hsla(0, 0%, 100%, 0.65);
     --glass-border: hsla(0, 0%, 100%, 0.9);
     --glass-shadow:
-      0 10px 40px rgba(0,0,0,0.06),
-      0 2px 8px rgba(0,0,0,0.04);
+      0 10px 40px rgba(0, 0, 0, 0.06),
+      0 2px 8px rgba(0, 0, 0, 0.04);
 
     /* ─────────────────────────────────────────────
        GRADIENTS
     ───────────────────────────────────────────── */
     --gradient-primary:
-      linear-gradient(
-        135deg,
-        hsl(350,60%,82%) 0%,
-        hsl(270,65%,85%) 50%,
-        hsl(25,85%,82%) 100%
-      );
+      linear-gradient(135deg,
+        hsl(350, 60%, 82%) 0%,
+        hsl(270, 65%, 85%) 50%,
+        hsl(25, 85%, 82%) 100%);
 
     --gradient-soft:
-      linear-gradient(
-        135deg,
-        hsl(25,85%,88%) 0%,
-        hsl(290,70%,92%) 100%
-      );
+      linear-gradient(135deg,
+        hsl(25, 85%, 88%) 0%,
+        hsl(290, 70%, 92%) 100%);
   }
 
   * {
@@ -81,6 +86,10 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  .font-heading {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
   ::selection {
     background: hsl(270 65% 85%);
     color: hsl(var(--foreground));
@@ -93,29 +102,47 @@
 @layer components {
 
   /* Glass Card */
-  .glass {
-    background: var(--glass-bg);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
-    border-radius: var(--radius);
-  }
+.glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid hsl(var(--border-soft));
+  border-radius: var(--radius);
+  box-shadow:
+    0 8px 30px rgba(0,0,0,0.05),
+    0 2px 6px rgba(0,0,0,0.03);
+  transition: all 0.35s ease;
+}
+
+.glass:hover {
+  transform: translateY(-6px);
+  box-shadow:
+    0 18px 50px rgba(0,0,0,0.08),
+    0 4px 12px rgba(0,0,0,0.04);
+}
 
   /* Card */
-  .card-aura {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    border-radius: var(--radius);
-    box-shadow: 0 6px 24px rgba(0,0,0,0.05);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
+ .card-aura {
+  background: linear-gradient(
+    145deg,
+    rgba(255,255,255,0.95),
+    rgba(255,255,255,0.85)
+  );
+  border: 1px solid hsl(var(--border-soft));
+  border-radius: var(--radius);
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.04),
+    0 2px 6px rgba(0,0,0,0.03);
+  transition: all 0.35s ease;
+  backdrop-filter: blur(10px);
+}
 
-  .card-aura:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.08);
-  }
-
+ .card-aura:hover {
+  transform: translateY(-6px) scale(1.015);
+  box-shadow:
+    0 18px 50px rgba(0,0,0,0.07),
+    0 4px 12px rgba(0,0,0,0.04);
+}
   /* Input */
   .input-aura {
     width: 100%;
@@ -130,7 +157,7 @@
   .input-aura:focus {
     outline: none;
     border-color: hsl(270 65% 85%);
-    box-shadow: 0 0 0 3px hsla(270,65%,85%,0.25);
+    box-shadow: 0 0 0 3px hsla(270, 65%, 85%, 0.25);
   }
 
   /* Buttons */
@@ -149,7 +176,7 @@
 
   .btn-primary:hover {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
   }
 
   .btn-secondary {
@@ -177,19 +204,19 @@
   }
 
   .blob-peach {
-    background: radial-gradient(circle, hsl(25,85%,82%) 0%, transparent 70%);
+    background: radial-gradient(circle, hsl(25, 85%, 82%) 0%, transparent 70%);
     border-radius: 50%;
     filter: blur(60px);
   }
 
   .blob-lavender {
-    background: radial-gradient(circle, hsl(270,65%,85%) 0%, transparent 70%);
+    background: radial-gradient(circle, hsl(270, 65%, 85%) 0%, transparent 70%);
     border-radius: 50%;
     filter: blur(60px);
   }
 
   .blob-lilac {
-    background: radial-gradient(circle, hsl(290,70%,90%) 0%, transparent 70%);
+    background: radial-gradient(circle, hsl(290, 70%, 90%) 0%, transparent 70%);
     border-radius: 50%;
     filter: blur(60px);
   }
@@ -217,7 +244,8 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #E5E7EB; /* soft gray */
+  background: #E5E7EB;
+  /* soft gray */
   border-radius: 999px;
   border: 3px solid transparent;
   background-clip: content-box;

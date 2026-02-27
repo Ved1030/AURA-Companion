@@ -9,6 +9,8 @@ import MoodTimeline from "@/components/MoodTimeline";
 import InputModes from "@/components/InputModes";
 import StatsCard from "@/components/StatsCard";
 
+type InputMode = "camera" | "voice" | "text";
+
 const container = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.08 } },
@@ -28,17 +30,25 @@ const stats = [
 
 const Index = () => {
   const webcamRef = useRef<Webcam>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunks = useRef<Blob[]>([]);
 
+  const [inputMode, setInputMode] = useState<InputMode>("camera");
   const [emotion, setEmotion] = useState<string>("Detecting...");
   const [confidence, setConfidence] = useState<number | null>(null);
   const [emotions, setEmotions] = useState<Record<string, number>>({});
+  const [textInput, setTextInput] = useState<string>("");
+
+  /* ---------------- CAMERA ---------------- */
 
   const detectEmotion = async () => {
+    if (inputMode !== "camera") return;
+
     try {
       const imageSrc = webcamRef.current?.getScreenshot();
       if (!imageSrc) return;
 
-      const response = await fetch("http://localhost:8000/emotion", {
+      const response = await fetch("http://127.0.0.1:8000/emotion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image: imageSrc }),
@@ -46,38 +56,109 @@ const Index = () => {
 
       const data = await response.json();
 
-      if (data.results && data.results.length > 0) {
+      if (data.results?.length > 0) {
         const result = data.results[0];
         setEmotion(result.emotion);
         setConfidence(result.confidence);
-        setEmotions({
-          [result.emotion]: result.confidence,
-        });
+        setEmotions({ [result.emotion]: result.confidence });
       }
     } catch (error) {
-      console.error("Emotion detection error:", error);
+      console.error("Camera error:", error);
     }
   };
 
   useEffect(() => {
-    const interval = setInterval(detectEmotion, 1500);
-    return () => clearInterval(interval);
-  }, []);
+    if (inputMode === "camera") {
+      const interval = setInterval(detectEmotion, 1500);
+      return () => clearInterval(interval);
+    }
+  }, [inputMode]);
+
+  /* ---------------- TEXT ---------------- */
+
+  const handleTextDetection = async () => {
+    if (!textInput) return;
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/text-emotion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: textInput }),
+      });
+
+      const data = await response.json();
+
+      setEmotion(data.emotion);
+      setConfidence(data.confidence);
+      setEmotions({ [data.emotion]: data.confidence });
+    } catch (error) {
+      console.error("Text error:", error);
+    }
+  };
+
+  /* ---------------- VOICE ---------------- */
+
+  const handleVoiceDetection = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunks.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
+
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "recording.webm");
+
+        const response = await fetch("http://127.0.0.1:8000/voice-emotion", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        setEmotion(data.emotion);
+        setConfidence(data.confidence);
+        setEmotions({ [data.emotion]: data.confidence });
+      };
+
+      mediaRecorder.start();
+
+      // record for 4 seconds
+      setTimeout(() => {
+        mediaRecorder.stop();
+      }, 4000);
+
+    } catch (error) {
+      console.error("Voice error:", error);
+    }
+  };
 
   return (
     <motion.div
       variants={container}
       initial="hidden"
       animate="show"
-      className="min-h-screen bg-[#FFFFFF] p-6 lg:p-10 space-y-10"
+      className="relative overflow-hidden min-h-screen bg-[#FFFFFF] p-6 lg:p-10 space-y-10"
     >
+
+    <div className="absolute inset-0 -z-10">
+    <div className="blob-peach w-[500px] h-[500px] absolute top-20 left-0 opacity-25" />
+    <div className="blob-lavender w-[500px] h-[500px] absolute bottom-10 right-0 opacity-25" />
+    </div>
 
       {/* HEADER */}
       <motion.div variants={item}>
-        <h1 className="text-3xl font-black text-gray-900">
+        <h1 className="text-4xl font-heading font-bold text-gray-900">
           Welcome Back
         </h1>
-        <p className="text-gray-600 font-medium mt-1">
+        <p className="text-subtle-aura font-medium mt-2">
           Here's your emotional wellness overview
         </p>
       </motion.div>
@@ -85,7 +166,7 @@ const Index = () => {
       {/* STATS GRID */}
       <motion.div
         variants={item}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
       >
         {stats.map((s) => (
           <div
@@ -100,23 +181,52 @@ const Index = () => {
       {/* MAIN SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* LEFT - CAMERA + ORB */}
+        {/* LEFT SECTION */}
         <motion.div
           variants={item}
           className="lg:col-span-2 bg-white rounded-[2.5rem] p-8 shadow-lg border border-white/80"
         >
           <div className="grid md:grid-cols-2 gap-8 items-center">
 
-            {/* Webcam */}
-            <div className="flex flex-col items-center">
-              <Webcam
-                ref={webcamRef}
-                screenshotFormat="image/jpeg"
-                width={240}
-                className="rounded-xl shadow-md mb-6"
-              />
 
-              <p className="text-sm font-semibold text-gray-700">
+            <div className="flex flex-col items-center">
+
+              {inputMode === "camera" && (
+                <Webcam
+                  ref={webcamRef}
+                  screenshotFormat="image/jpeg"
+                  width={240}
+                  className="rounded-xl shadow-md mb-6"
+                />
+              )}
+
+              {inputMode === "voice" && (
+                <button
+                  onClick={handleVoiceDetection}
+                  className="px-6 py-3 bg-blue-500 text-white rounded-xl mb-6"
+                >
+                  Start Voice Detection
+                </button>
+              )}
+
+              {inputMode === "text" && (
+                <div className="flex flex-col items-center w-full">
+                  <textarea
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="Type how you feel..."
+                    className="w-64 p-3 border rounded-xl mb-3"
+                  />
+                  <button
+                    onClick={handleTextDetection}
+                    className="px-5 py-2 bg-purple-500 text-white rounded-xl"
+                  >
+                    Analyze Text
+                  </button>
+                </div>
+              )}
+
+              <p className="text-sm font-semibold text-gray-700 mt-4">
                 Current State:
                 <span className="ml-2 capitalize text-[#C060B0]">
                   {emotion}
@@ -129,7 +239,7 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Aura Orb */}
+
             <div className="flex justify-center">
               <AuraOrb emotion={emotion} size="lg" />
             </div>
@@ -137,17 +247,20 @@ const Index = () => {
           </div>
         </motion.div>
 
-        {/* RIGHT - INPUT MODES */}
+        {/* RIGHT SECTION */}
         <motion.div
           variants={item}
           className="bg-white rounded-[2.5rem] p-8 shadow-lg border border-white/80 flex flex-col justify-center"
         >
-          <InputModes />
+          <InputModes
+            selected={inputMode}
+            onSelect={(mode: InputMode) => setInputMode(mode)}
+          />
         </motion.div>
 
       </div>
 
-      {/* EMOTION DISTRIBUTION PANEL */}
+
       <motion.div
         variants={item}
         className="bg-white rounded-[2.5rem] p-8 shadow-md border border-white/80"
@@ -155,7 +268,7 @@ const Index = () => {
         <EmotionPanel emotions={emotions} />
       </motion.div>
 
-      {/* WEEKLY / MONTHLY TIMELINE SECTION */}
+
       <motion.div
         variants={item}
         className="bg-gradient-to-br from-[#F8E0C2] via-[#F5D6FF] to-[#D5D2FD] rounded-[2.5rem] p-8 shadow-lg"
@@ -169,7 +282,7 @@ const Index = () => {
           </p>
         </div>
 
-        {/* This keeps your internal weekly/month toggle intact */}
+
         <MoodTimeline />
       </motion.div>
 
