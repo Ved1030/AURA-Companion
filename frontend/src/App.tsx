@@ -25,6 +25,7 @@ import NotFound from "./pages/NotFound";
 import Calendar from "./pages/Calendar";
 import GamesPage from "./pages/GamesPage";
 import TherapyPage from "./pages/TherapyPage";
+import Journey from "./pages/Journey";
 
 import BreathingGame from "./pages/games/BreathingGame";
 import MemoryGame from "./pages/games/MemoryGame";
@@ -58,8 +59,7 @@ const AppLayout = () => {
   return (
     <div className="flex min-h-screen w-full bg-background">
       <AppSidebar />
-      <main className="flex-1 min-w-0 h-screen overflow-hidden bg-card">
-        <Outlet />
+<main className="flex-1 min-w-0 h-screen overflow-y-auto bg-card">        <Outlet />
       </main>
     </div>
   );
@@ -92,13 +92,17 @@ const App = () => (
                 <Route path="/app/analytics" element={<Analytics />} />
                 <Route path="/app/calendar" element={<Calendar />} />
                 <Route path="/app/games" element={<GamesPage />} />
+
+                {/* Game Routes */}
                 <Route path="/app/games/breathing" element={<BreathingGame />} />
                 <Route path="/app/games/memory" element={<MemoryGame />} />
                 <Route path="/app/games/gratitude" element={<GratitudeGame />} />
                 <Route path="/app/games/maze" element={<MazeGame />} />
                 <Route path="/app/games/color" element={<ColorGame />} />
                 <Route path="/app/games/zen" element={<ZenGame />} />
+
                 <Route path="/app/therapy" element={<TherapyPage />} />
+                <Route path="/app/journey" element={<Journey />} /> {/* ✅ FIXED */}
                 <Route path="/app/recommendations" element={<Recommendations />} />
                 <Route path="/app/settings" element={<SettingsPage />} />
 

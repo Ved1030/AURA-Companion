@@ -21,7 +21,7 @@ const games = [
     icon: "🫧",
     difficulty: "Easy",
     duration: "3 min",
-    route: "/games/breathing",
+    route: "breathing", // ✅ changed
     benefits: ["Reduces stress", "Improves focus"],
   },
   {
@@ -31,7 +31,7 @@ const games = [
     icon: "🧠",
     difficulty: "Medium",
     duration: "5 min",
-    route: "/games/memory",
+    route: "memory",
     benefits: ["Enhances memory", "Positive thinking"],
   },
   {
@@ -41,7 +41,7 @@ const games = [
     icon: "🌸",
     difficulty: "Easy",
     duration: "4 min",
-    route: "/games/gratitude",
+    route: "gratitude",
     benefits: ["Cultivates gratitude", "Boosts happiness"],
   },
   {
@@ -51,7 +51,7 @@ const games = [
     icon: "🎯",
     difficulty: "Medium",
     duration: "6 min",
-    route: "/games/maze",
+    route: "maze",
     benefits: ["Improves focus", "Reduces anxiety"],
   },
   {
@@ -61,7 +61,7 @@ const games = [
     icon: "🎨",
     difficulty: "Easy",
     duration: "5 min",
-    route: "/games/color",
+    route: "color",
     benefits: ["Creative expression", "Relaxation"],
   },
   {
@@ -71,7 +71,7 @@ const games = [
     icon: "🪨",
     difficulty: "Hard",
     duration: "7 min",
-    route: "/games/zen",
+    route: "zen",
     benefits: ["Mindfulness", "Patience"],
   },
 ];
