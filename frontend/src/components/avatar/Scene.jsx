@@ -4,7 +4,7 @@ import { Environment } from "@react-three/drei";
 import { Suspense } from "react";
 import Avatar from "./Avatar";
 
-export default function Scene({ onAvatarReady }) {
+export default function Scene({ onAvatarReady, modelUrl }) {
   return (
     <Canvas
       camera={{ position: [0, 0.4, 1.8], fov: 35 }}
@@ -17,7 +17,7 @@ export default function Scene({ onAvatarReady }) {
 
       <Suspense fallback={null}>
         <Environment preset="studio" />
-        <Avatar onReady={onAvatarReady} />
+        <Avatar onReady={onAvatarReady} modelUrl={modelUrl} />
       </Suspense>
     </Canvas>
   );

@@ -5,23 +5,40 @@ from dotenv import load_dotenv
 from sarvamai import SarvamAI
 from services.memory import get_memory
 
-load_dotenv(dotenv_path=".env", override=True)
+load_dotenv(override=True)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 
-print(f"sarvam key:{SARVAM_API_KEY}")
-
 sarvam_client = SarvamAI(api_subscription_key=SARVAM_API_KEY)
 
+# -------------------- AVATAR CONFIG --------------------
+
+AVATAR_CONFIG = {
+    "Calm Aura": {
+        "llm_model": "llama-3.1-8b-instant",
+        "tts_model": "bulbul:v2",
+        "speaker": "anushka"
+    },
+    "Joy Aura": {
+        "llm_model": "llama-3.1-8b-instant",
+        "tts_model": "bulbul:v2",
+        "speaker": "abhilash"
+    },
+    "Zen Aura": {
+        "llm_model": "llama-3.1-8b-instant",
+        "tts_model": "bulbul:v2",
+        "speaker": "manisha"
+    }
+}
 
 # -------------------- SYSTEM PROMPT --------------------
 
-def build_system_prompt(emotion: str):
+def build_system_prompt(emotion: str, avatar_name: str):
     emotion = (emotion or "neutral").lower()
 
     return f"""
-You are AURA, an emotionally intelligent AI wellness companion.
+You are {avatar_name}, an emotionally intelligent AI wellness companion.
 
 The user's facial emotion detected from the camera is: {emotion}.
 
@@ -33,13 +50,15 @@ IMPORTANT RULES:
 """
 
 
-# -------------------- LLM CALL WITH MEMORY --------------------
+# -------------------- LLM CALL --------------------
 
-def generate_ai_response(user_text, emotion, memory):
+def generate_ai_response(user_text, emotion, memory, avatar_name):
 
-    system_prompt = build_system_prompt(emotion)
+    avatar_config = AVATAR_CONFIG.get(avatar_name, AVATAR_CONFIG["Calm Aura"])
+    llm_model = avatar_config["llm_model"]
 
-    # Add user message to memory
+    system_prompt = build_system_prompt(emotion, avatar_name)
+
     memory.append({
         "role": "user",
         "content": user_text
@@ -52,13 +71,13 @@ def generate_ai_response(user_text, emotion, memory):
             "Content-Type": "application/json"
         },
         json={
-            "model": "llama-3.1-8b-instant",
+            "model": llm_model,
             "messages": [
                 {
                     "role": "system",
                     "content": system_prompt
                 },
-                *memory  # 🔥 send only trimmed memory
+                *memory
             ],
             "temperature": 0.7,
             "max_tokens": 200
@@ -71,7 +90,6 @@ def generate_ai_response(user_text, emotion, memory):
     data = response.json()
     reply = data["choices"][0]["message"]["content"]
 
-    # Add assistant reply to memory
     memory.append({
         "role": "assistant",
         "content": reply
@@ -87,6 +105,7 @@ async def process_assistant(request, audio):
     user_text = None
     emotion = "neutral"
     session_id = "default"
+    avatar_name = "Calm Aura"
 
     # -------------------- VOICE INPUT --------------------
     if audio:
@@ -104,6 +123,7 @@ async def process_assistant(request, audio):
         form_data = await request.form()
         emotion = form_data.get("emotion", "neutral")
         session_id = form_data.get("session_id", "default")
+        avatar_name = form_data.get("avatar_name", "Calm Aura")
 
     # -------------------- TEXT INPUT --------------------
     else:
@@ -111,26 +131,29 @@ async def process_assistant(request, audio):
         user_text = body.get("text")
         emotion = body.get("emotion", "neutral")
         session_id = body.get("session_id", "default")
+        avatar_name = body.get("avatar_name", "Calm Aura")
 
     if not user_text:
         return {"error": "No input provided"}
 
-    print("Emotion received:", emotion)
+    print("Avatar:", avatar_name)
+    print("Emotion:", emotion)
     print("Session:", session_id)
 
-    # 🔥 Get memory for this session
     memory = get_memory(session_id)
 
     # -------------------- GENERATE RESPONSE --------------------
-    ai_reply = generate_ai_response(user_text, emotion, memory)
+    ai_reply = generate_ai_response(user_text, emotion, memory, avatar_name)
 
     # -------------------- TEXT TO SPEECH --------------------
     try:
+        avatar_config = AVATAR_CONFIG.get(avatar_name, AVATAR_CONFIG["Calm Aura"])
+
         tts_response = sarvam_client.text_to_speech.convert(
             target_language_code="en-IN",
             text=ai_reply,
-            model="bulbul:v2",
-            speaker="anushka"
+            model=avatar_config["tts_model"],
+            speaker=avatar_config["speaker"]
         )
 
         audio_base64 = tts_response.audios[0]
@@ -138,11 +161,6 @@ async def process_assistant(request, audio):
     except Exception as e:
         print("TTS Error:", str(e))
         audio_base64 = None
-
-    print("=== DEBUG RESPONSE ===")
-    print("Reply:", ai_reply)
-    print("Audio is None?", audio_base64 is None)
-    print("======================")
 
     return {
         "emotion_detected": emotion,

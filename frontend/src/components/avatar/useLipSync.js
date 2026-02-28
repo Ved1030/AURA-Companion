@@ -56,8 +56,8 @@ export default function useLipSync(scene) {
   };
 
   const playAudioWithLipSync = async (audioBlob, text = "") => {
-  if (!meshRef.current) return;
-
+  console.log("useLipSync: playAudioWithLipSync called");
+  // always create an audio element so sound plays even if mesh not ready
   const audioUrl = URL.createObjectURL(audioBlob);
   const audio = new Audio(audioUrl);
 
@@ -77,7 +77,9 @@ export default function useLipSync(scene) {
   analyser.connect(audioContext.destination);
 
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
-  const influences = meshRef.current.morphTargetInfluences;
+
+  // influence array may be undefined until meshRef is populated
+  const influences = meshRef.current?.morphTargetInfluences;
 
   const JAW = 34;
   const SMILE_L = 47;
@@ -93,40 +95,42 @@ export default function useLipSync(scene) {
     current + (target - current) * 0.18;
 
   const animate = () => {
-    analyser.getByteFrequencyData(dataArray);
-
-    const volume =
-      dataArray.reduce((a, b) => a + b, 0) /
-      dataArray.length;
-
-    let strength = volume / 80; // softer curve
-
-    strength = Math.min(strength, MAX_JAW_OPEN);
-    strength *= 0.7 + pacingFactor * 0.3;
-
-    // 👄 Controlled jaw
-    influences[JAW] = smooth(
-      influences[JAW],
-      strength
-    );
-
-    // 😊 Always slight smile (cute mode)
-    influences[SMILE_L] = smooth(
-      influences[SMILE_L],
-      0.15
-    );
-    influences[SMILE_R] = smooth(
-      influences[SMILE_R],
-      0.15
-    );
-
-    // 💬 Subtle mouth shaping
-    influences[FUNNEL] = smooth(
-      influences[FUNNEL],
-      strength * 0.3
-    );
-
     if (!audio.paused) {
+      // when mesh and influences are ready, update them
+      if (meshRef.current && influences) {
+        analyser.getByteFrequencyData(dataArray);
+
+        const volume =
+          dataArray.reduce((a, b) => a + b, 0) /
+          dataArray.length;
+
+        let strength = volume / 80; // softer curve
+
+        strength = Math.min(strength, MAX_JAW_OPEN);
+        strength *= 0.7 + pacingFactor * 0.3;
+
+        // 👄 Controlled jaw
+        influences[JAW] = smooth(
+          influences[JAW],
+          strength
+        );
+
+        // 😊 Always slight smile (cute mode)
+        influences[SMILE_L] = smooth(
+          influences[SMILE_L],
+          0.15
+        );
+        influences[SMILE_R] = smooth(
+          influences[SMILE_R],
+          0.15
+        );
+
+        // 💬 Subtle mouth shaping
+        influences[FUNNEL] = smooth(
+          influences[FUNNEL],
+          strength * 0.3
+        );
+      }
       requestAnimationFrame(animate);
     }
   };
@@ -134,8 +138,10 @@ export default function useLipSync(scene) {
   audio.onplay = () => animate();
 
   audio.onended = () => {
-    influences[JAW] = 0;
-    influences[FUNNEL] = 0;
+    if (influences) {
+      influences[JAW] = 0;
+      influences[FUNNEL] = 0;
+    }
 
     source.disconnect();
     analyser.disconnect();

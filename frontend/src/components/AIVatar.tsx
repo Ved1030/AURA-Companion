@@ -3,9 +3,10 @@ import Scene from "./avatar/Scene";
 
 interface Props {
   audioBlob: Blob | null;
+  modelUrl?: string;
 }
 
-export default function AIVatar({ audioBlob }: Props) {
+export default function AIVatar({ audioBlob, modelUrl }: Props) {
   const [lipSync, setLipSync] = useState<any>(null);
   const latestAudioRef = useRef<Blob | null>(null);
 
@@ -23,6 +24,12 @@ export default function AIVatar({ audioBlob }: Props) {
     }
   }, [audioBlob]);
 
+  // clear lipSync and pending audio when avatar model changes
+  useEffect(() => {
+    setLipSync(null);
+    latestAudioRef.current = null;
+  }, [modelUrl]);
+
   // When both lipSync + audio exist
   useEffect(() => {
     if (!lipSync) {
@@ -39,7 +46,7 @@ export default function AIVatar({ audioBlob }: Props) {
 
   return (
     <div className="w-72 h-72 rounded-full overflow-hidden border border-cyan-400 shadow-2xl">
-      <Scene onAvatarReady={handleAvatarReady} />
+      <Scene onAvatarReady={handleAvatarReady} modelUrl={modelUrl} />
     </div>
   );
 }

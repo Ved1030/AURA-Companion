@@ -98,47 +98,33 @@ const Index = () => {
 
   /* ---------------- VOICE ---------------- */
 
-  const handleVoiceDetection = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+  const handleVoiceDetection = () => {
+  const SpeechRecognition =
+    (window as any).SpeechRecognition ||
+    (window as any).webkitSpeechRecognition;
 
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunks.current = [];
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
 
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.current.push(event.data);
-      };
+  recognition.onresult = async (event: any) => {
+    const transcript = event.results[0][0].transcript;
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
+    const response = await fetch("http://127.0.0.1:8000/text-emotion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: transcript }),
+    });
 
-        const formData = new FormData();
-        formData.append("audio", audioBlob, "recording.webm");
+    const data = await response.json();
 
-        const response = await fetch("http://127.0.0.1:8000/voice-emotion", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await response.json();
-
-        setEmotion(data.emotion);
-        setConfidence(data.confidence);
-        setEmotions({ [data.emotion]: data.confidence });
-      };
-
-      mediaRecorder.start();
-
-      // record for 4 seconds
-      setTimeout(() => {
-        mediaRecorder.stop();
-      }, 4000);
-
-    } catch (error) {
-      console.error("Voice error:", error);
-    }
+    setEmotion(data.emotion);
+    setConfidence(data.confidence);
+    setEmotions({ [data.emotion]: data.confidence });
   };
+
+  recognition.start();
+};
 
   return (
     <motion.div

@@ -5,6 +5,9 @@ import Webcam from "react-webcam";
 
 import AIVatar from "./AIVatar";
 import VoiceModal from "@/components/VoiceModal";
+import avatar1 from "@/assets/avatar/avatar1.png";
+import avatar2 from "@/assets/avatar/avatar2.png";
+import avatar3 from "@/assets/avatar/avatar3.png";
 
 interface Message {
   id: number;
@@ -12,19 +15,73 @@ interface Message {
   sender: "user" | "aura";
 }
 
+interface Avatar {
+  id: number;
+  name: string;
+  image: string;
+  modelUrl: string;
+  sarvamModel: string;
+}
+
 const ChatInterface = () => {
   const webcamRef = useRef<Webcam>(null);
 
-  // ✅ NEW: session id for backend memory
-  const sessionId = useRef(crypto.randomUUID());
-
-  const [messages, setMessages] = useState<Message[]>([
+  // avatars configuration - each object carries required metadata
+  const avatars: Avatar[] = [
+    {
+      id: 0,
+      name: "Calm Aura",
+      image: avatar1, // adjust to real paths
+      modelUrl: "https://models.readyplayer.me/69a279d84d98c76821c317a1.glb",
+      sarvamModel: "sarvam-therapy-v1anushkamaleshubhanushka",
+    },
     {
       id: 1,
-      text: "Hello! I'm AURA, your AI wellness companion.",
-      sender: "aura",
+      name: "Joy Aura",
+      image: avatar2,
+      modelUrl: "https://models.readyplayer.me/69a26c875f0ce8d116ba5d5b.glb",
+      sarvamModel: "sarvam-energetic-v1hubhrya",
     },
-  ]);
+    {
+      id: 2,
+      name: "Zen Aura",
+      image: avatar3,
+      modelUrl: "https://models.readyplayer.me/69a27a2a2b9bcc76d538bf8a.glb",
+      sarvamModel: "sarvam-meditation-v1ituidya",
+    },
+    // add more avatars as needed
+  ];
+
+  const [selectedAvatarIndex, setSelectedAvatarIndex] = useState<number>(0);
+
+  // map avatarId -> { sessionId, messages }
+  const [avatarSessions, setAvatarSessions] = useState<{
+    [key: number]: { sessionId: string; messages: Message[] };
+  }>(() => {
+    const firstId = avatars[0].id;
+    return {
+      [firstId]: {
+        sessionId: crypto.randomUUID(),
+        messages: [
+          {
+            id: 1,
+            text: "Hello! I'm AURA, your AI wellness companion.",
+            sender: "aura",
+          },
+        ],
+      },
+    };
+  });
+
+  // derive current avatar & messages/session
+  const currentAvatar = avatars[selectedAvatarIndex];
+  const currentSessionId =
+    avatarSessions[currentAvatar.id]?.sessionId ||
+    crypto.randomUUID();
+
+  const [messages, setMessages] = useState<Message[]>(
+    avatarSessions[currentAvatar.id]?.messages || []
+  );
 
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -33,19 +90,7 @@ const ChatInterface = () => {
 
   const [currentEmotion, setCurrentEmotion] = useState<string>("neutral");
   const [confidence, setConfidence] = useState<number | null>(null);
-  const [selectedAvatarIndex, setSelectedAvatarIndex] = useState<number>(0);
   const [hasStartedConversation, setHasStartedConversation] = useState(false);
-
-  const avatars = [
-    "Avatar 1",
-    "Avatar 2",
-    "Avatar 3",
-    "Avatar 4",
-    "Avatar 5",
-    "Avatar 6",
-    "Avatar 7",
-    "Avatar 8",
-  ];
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
@@ -109,6 +154,38 @@ const ChatInterface = () => {
     };
   }, []);
 
+  /* ================================= */
+  /* 🔁 AVATAR SESSION MANAGEMENT     */
+  /* ================================= */
+  // when messages change for the current avatar, persist them
+  useEffect(() => {
+    setAvatarSessions((prev) => ({
+      ...prev,
+      [currentAvatar.id]: {
+        sessionId: prev[currentAvatar.id]?.sessionId || currentSessionId,
+        messages,
+      },
+    }));
+  }, [messages, currentAvatar.id]);
+
+  // when user switches avatars, load that avatar's messages
+  useEffect(() => {
+    const stored = avatarSessions[currentAvatar.id];
+    if (stored) {
+      setMessages(stored.messages);
+    } else {
+      // initialize a blank conversation for new avatar
+      setMessages([]);
+      setAvatarSessions((prev) => ({
+        ...prev,
+        [currentAvatar.id]: {
+          sessionId: currentSessionId,
+          messages: [],
+        },
+      }));
+    }
+  }, [selectedAvatarIndex]);
+
   /* ===================== */
   /* 🧠 SEND TEXT MESSAGE  */
   /* ===================== */
@@ -121,7 +198,9 @@ const ChatInterface = () => {
       body: JSON.stringify({
         text,
         emotion: currentEmotion,
-        session_id: sessionId.current, // ✅ NEW
+        avatar_name: currentAvatar.name,
+        avatar_model: currentAvatar.sarvamModel,
+        session_id: currentSessionId,
       }),
     });
 
@@ -152,7 +231,9 @@ if (data.audio) {
     const formData = new FormData();
     formData.append("audio", audioBlob, "recording.wav");
     formData.append("emotion", currentEmotion);
-    formData.append("session_id", sessionId.current); // ✅ NEW
+    formData.append("avatar_name", currentAvatar.name);
+    formData.append("avatar_model", currentAvatar.sarvamModel);
+    formData.append("session_id", currentSessionId);
 
     const response = await fetch("http://127.0.0.1:8000/assistant", {
       method: "POST",
@@ -247,14 +328,11 @@ if (data.audio) {
         <div
           onWheel={(e) => {
             e.preventDefault();
-
-            const sensitivity = 0.002;
+            // move one avatar per scroll step
+            const step = e.deltaY > 0 ? 1 : -1;
             setSelectedAvatarIndex((prev) => {
-              const next = prev + e.deltaY * sensitivity;
-              return Math.max(
-                0,
-                Math.min(next, avatars.length - 1)
-              );
+              const next = prev + step;
+              return Math.max(0, Math.min(next, avatars.length - 1));
             });
           }}
           className="relative h-[320px] w-full flex items-center justify-center overflow-hidden"
@@ -269,9 +347,9 @@ if (data.audio) {
 
               return (
                 <div
-                  key={index}
+                  key={avatar.id}
                   onClick={() => setSelectedAvatarIndex(index)}
-                  className="absolute w-28 h-28 flex items-center justify-center rounded-full glass cursor-pointer transition-all duration-300 ease-out"
+                  className="absolute w-28 h-28 flex items-center justify-center rounded-full glass cursor-pointer overflow-hidden transition-all duration-300 ease-out"
                   style={{
                     transform: `
                       translateY(${offset * 100}px)
@@ -282,7 +360,11 @@ if (data.audio) {
                     zIndex: 10 - Math.abs(offset),
                   }}
                 >
-                  <span className="text-sm">{avatar}</span>
+                  <img
+                    src={avatar.image}
+                    alt={avatar.name}
+                    className="w-full h-full object-cover rounded-full"
+                  />
                 </div>
               );
             })}
@@ -293,7 +375,7 @@ if (data.audio) {
       {/* CENTER AVATAR */}
       <div className="flex flex-1 items-center justify-center">
         <div className="scale-125">
-          <AIVatar audioBlob={latestBlob} />
+          <AIVatar audioBlob={latestBlob} modelUrl={currentAvatar.modelUrl} />
         </div>
       </div>
 

@@ -7,6 +7,11 @@ import numpy as np
 import base64
 from tensorflow.keras.models import model_from_json
 from collections import deque
+import uuid
+import io
+from fastapi.responses import StreamingResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 # 🔥 NEW (for session memory)
 from services.memory import get_memory
@@ -19,8 +24,6 @@ import os
 
 app = FastAPI()
 
-# -------------------- CORS --------------------
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,8 +31,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# -------------------- GLOBALS --------------------
 
 model = None
 face_cascade = None
@@ -45,15 +46,13 @@ labels = {
 }
 
 emotion_history = deque(maxlen=5)
+public_reports = {}
 
-# 🔥 NEW: Load NLP emotion model once
 text_emotion_model = pipeline(
     "text-classification",
     model="j-hartmann/emotion-english-distilroberta-base",
     top_k=None
 )
-
-# -------------------- STARTUP EVENTS --------------------
 
 @app.on_event("startup")
 def load_emotion_model():
@@ -70,64 +69,41 @@ def load_emotion_model():
 
     print("Emotion Model Loaded Successfully!")
 
-# -------------------- HELPER FUNCTIONS --------------------
-
 def extract_features(image):
     image = np.array(image)
     image = image.reshape(1, 48, 48, 1)
     return image / 255.0
 
-
 def calculate_stress(pred_probs):
-    angry = pred_probs[0]
-    fear = pred_probs[2]
-    sad = pred_probs[5]
-    disgust = pred_probs[1]
-    stress = (angry + fear + sad + disgust) * 100
-    return int(stress)
-
+    return int((pred_probs[0] + pred_probs[2] + pred_probs[5] + pred_probs[1]) * 100)
 
 def get_stable_emotion():
     if len(emotion_history) < 5:
         return None
-
     for emotion in set(emotion_history):
         if emotion_history.count(emotion) >= 3:
             return emotion
-
     return None
-
 
 def decide_avatar_mode(confidence, stable_emotion, stress):
     if confidence < 55:
         return "check_in"
-
     if stress > 80:
         return "crisis"
-
     if stress > 60:
         return "support"
-
     if stable_emotion in ["sad", "fear", "angry"]:
         return "empathy"
-
     if stable_emotion == "happy":
         return "celebrate"
-
     return "neutral"
-
-# -------------------- ASSISTANT ENDPOINT --------------------
 
 @app.post("/assistant")
 async def assistant_endpoint(request: Request, audio: UploadFile = File(None)):
     return await process_assistant(request, audio)
 
-# -------------------- FACE EMOTION ENDPOINT --------------------
-
 @app.post("/emotion")
 async def emotion_endpoint(request: Request):
-    global model
-
     body = await request.json()
     image_base64 = body.get("image")
 
@@ -178,20 +154,15 @@ async def emotion_endpoint(request: Request):
 
     return {"results": results}
 
-# -------------------- TEXT EMOTION ENDPOINT --------------------
 from pydantic import BaseModel
 
 class TextInput(BaseModel):
     text: str
+
 @app.post("/text-emotion")
 async def text_emotion_endpoint(data: TextInput):
-
-    if not data.text:
-        return {"error": "No text provided"}
-
     prediction = text_emotion_model(data.text)[0]
     top_emotion = max(prediction, key=lambda x: x['score'])
-
     confidence = float(top_emotion["score"] * 100)
 
     return {
@@ -199,23 +170,17 @@ async def text_emotion_endpoint(data: TextInput):
         "confidence": round(confidence, 2)
     }
 
-# -------------------- VOICE EMOTION ENDPOINT --------------------
-
 @app.post("/voice-emotion")
 async def voice_emotion_endpoint(audio: UploadFile = File(...)):
     try:
-        # Save temp file as webm
         with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
             tmp.write(await audio.read())
             tmp_path = tmp.name
 
-        recognizer = sr.Recognizer()
-
-        # Convert webm → wav using ffmpeg (required)
         wav_path = tmp_path.replace(".webm", ".wav")
-
         os.system(f"ffmpeg -i {tmp_path} {wav_path} -y")
 
+        recognizer = sr.Recognizer()
         with sr.AudioFile(wav_path) as source:
             audio_data = recognizer.record(source)
 
@@ -226,7 +191,6 @@ async def voice_emotion_endpoint(audio: UploadFile = File(...)):
 
         prediction = text_emotion_model(text)[0]
         top_emotion = max(prediction, key=lambda x: x['score'])
-
         confidence = float(top_emotion["score"] * 100)
 
         return {
@@ -237,3 +201,86 @@ async def voice_emotion_endpoint(audio: UploadFile = File(...)):
 
     except Exception as e:
         return {"error": str(e)}
+
+# ---------------- PUBLIC REPORT SYSTEM ----------------
+
+@app.post("/public/report")
+async def create_public_report(request: Request):
+    body = await request.json()
+
+    token = uuid.uuid4().hex
+    public_reports[token] = body
+
+    # 🔥 IMPORTANT: Use your laptop IP
+    base = "http://192.168.0.151:8000"
+    download_url = f"{base}/public/report/{token}/pdf"
+
+    return {
+        "token": token,
+        "url": download_url
+
+    }
+
+@app.get("/public/report/{token}/pdf")
+async def serve_report_pdf(token: str):
+    payload = public_reports.get(token)
+    if not payload:
+        return {"error": "Report not found"}
+
+    report = payload.get("report", {})
+    coupon = payload.get("coupon", "TAKECARE20")
+
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+
+    c.setFont("Helvetica-Bold", 22)
+    c.drawString(72, height - 72, "AURA Mental Wellness Report")
+
+    c.setFont("Helvetica", 11)
+    c.drawString(72, height - 100, f"Generated: {payload.get('createdAt', '')}")
+
+    y = height - 140
+
+    dominant = report.get("dominantState", {})
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(72, y, f"Dominant State: {dominant.get('label', 'N/A')}")
+    y -= 20
+
+    c.setFont("Helvetica", 11)
+    for detail in dominant.get("details", []):
+        c.drawString(90, y, f"- {detail}")
+        y -= 15
+
+    y -= 20
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(72, y, "Insights:")
+    y -= 20
+
+    c.setFont("Helvetica", 11)
+    for insight in report.get("insights", [])[:6]:
+        c.drawString(90, y, f"- {insight}")
+        y -= 15
+
+    y -= 30
+    c.setFillColorRGB(0.95, 0.85, 0.78)
+    c.rect(72, y - 40, 400, 50, fill=1)
+
+    c.setFillColorRGB(0, 0, 0)
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(90, y - 15, "🎉 SPA UNLOCKED 🎉")
+
+    c.setFont("Helvetica-Bold", 20)
+    c.drawString(90, y - 35, f"Coupon Code: {coupon}")
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=aura-report-{token}.pdf"
+        }
+    )
