@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Mic, Camera } from "lucide-react";
+import { Send, Mic, Camera, X } from "lucide-react";
 import Webcam from "react-webcam";
+import { useNavigate } from "react-router-dom";
 
 import AIVatar from "./AIVatar";
 import VoiceModal from "@/components/VoiceModal";
@@ -23,8 +24,18 @@ interface Avatar {
   sarvamModel: string;
 }
 
+interface Game {
+  id: string;
+  name: string;
+  description: string;
+  emotion: string[];
+  icon: string;
+  route: string;
+}
+
 const ChatInterface = () => {
   const webcamRef = useRef<Webcam>(null);
+  const navigate = useNavigate();
 
   // avatars configuration - each object carries required metadata
   const avatars: Avatar[] = [
@@ -92,8 +103,64 @@ const ChatInterface = () => {
   const [confidence, setConfidence] = useState<number | null>(null);
   const [hasStartedConversation, setHasStartedConversation] = useState(false);
 
+  // Game recommendation state
+  const [gameRecommendationShown, setGameRecommendationShown] = useState<{ [key: number]: boolean }>({});
+  const [suggestedGames, setSuggestedGames] = useState<Game[]>([]);
+  const [userDeclinedGames, setUserDeclinedGames] = useState<{ [key: number]: boolean }>({});
+
+  // Game data - matches the 6 games in pages/games
+  const games: Game[] = [
+    { id: "breathing", name: "Breathing", description: "Calm your mind with guided breathing", emotion: ["sad", "angry", "fear"], icon: "🌬️", route: "/app/games/breathing" },
+    { id: "color", name: "Color Game", description: "Relax with calming colors", emotion: ["sad", "neutral"], icon: "🎨", route: "/app/games/color" },
+    { id: "gratitude", name: "Gratitude", description: "Count your blessings", emotion: ["sad", "neutral", "happy"], icon: "🙏", route: "app/games/gratitude" },
+    { id: "maze", name: "Maze", description: "Challenge your mind", emotion: ["neutral", "happy"], icon: "🎯", route: "/app/games/maze" },
+    { id: "memory", name: "Memory", description: "Train your memory", emotion: ["neutral", "happy"], icon: "🧠", route: "/app/games/memory" },
+    { id: "zen", name: "Zen", description: "Find inner peace", emotion: ["sad", "angry", "fear"], icon: "☮️", route: "/app/games/zen" },
+  ];
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
+
+  /* ===================== */
+  /* 🎮 GAME RECOMMENDATION */
+  /* ===================== */
+  const getRecommendedGames = (emotion: string): Game[] => {
+    const emotionLower = emotion.toLowerCase();
+    return games.filter(game => game.emotion.includes(emotionLower)).slice(0, 3);
+  };
+
+  const shouldShowGameRecommendation = (): boolean => {
+    const sessionId = avatarSessions[currentAvatar.id]?.sessionId;
+    if (!sessionId || gameRecommendationShown[currentAvatar.id] || userDeclinedGames[currentAvatar.id]) {
+      return false;
+    }
+    // Count AI responses (messages from "aura")
+    const auraResponseCount = messages.filter(msg => msg.sender === "aura").length;
+    // Show on 2nd or 3rd response (trigger when we reach 2 or 3 AI messages)
+    return auraResponseCount === 2 || auraResponseCount === 3;
+  };
+
+  // Trigger game recommendation when conditions are met
+  useEffect(() => {
+    if (shouldShowGameRecommendation()) {
+      const recommendedGames = getRecommendedGames(currentEmotion);
+      setSuggestedGames(recommendedGames);
+      setGameRecommendationShown(prev => ({
+        ...prev,
+        [currentAvatar.id]: true
+      }));
+      
+      // Add a human-friendly AI message suggesting games
+      setMessages(prev => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          text: `By the way, based on how you're feeling right now, you might enjoy trying one of these games. Want to give any a shot?`,
+          sender: "aura"
+        }
+      ]);
+    }
+  }, [messages, currentEmotion, currentAvatar.id]);
 
   /* ===================== */
   /* 🔊 AUDIO + LIP SYNC  */
@@ -184,6 +251,11 @@ const ChatInterface = () => {
         },
       }));
     }
+  }, [selectedAvatarIndex]);
+
+  // Reset game recommendations when switching avatars
+  useEffect(() => {
+    setSuggestedGames([]);
   }, [selectedAvatarIndex]);
 
   /* ===================== */
@@ -404,6 +476,46 @@ if (data.audio) {
               </motion.div>
             ))}
           </AnimatePresence>
+
+          {/* Game Recommendation Card */}
+          {suggestedGames.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6 p-5 bg-gradient-to-br from-cyan-100/40 to-purple-100/40 rounded-2xl border border-cyan-200/50 shadow-lg"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-bold text-gray-800">✨ I have some suggestions for you:</p>
+                <button
+                  onClick={() => {
+                    setUserDeclinedGames(prev => ({ ...prev, [currentAvatar.id]: true }));
+                    setSuggestedGames([]);
+                  }}
+                  className="p-1.5 hover:bg-white/50 rounded-full transition"
+                  title="Maybe later"
+                >
+                  <X className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {suggestedGames.map((game) => (
+                  <motion.button
+                    key={game.id}
+                    whileHover={{ scale: 1.05 }}
+                    onClick={() => {
+                      navigate(game.route);
+                    }}
+                    className="p-3 bg-white hover:bg-cyan-50 rounded-xl border-2 border-cyan-200/50 hover:border-cyan-300 transition-all cursor-pointer shadow-sm"
+                  >
+                    <div className="text-2xl mb-2">{game.icon}</div>
+                    <div className="text-xs font-bold text-gray-800">{game.name}</div>
+                    <div className="text-xs text-gray-600 leading-tight">{game.description}</div>
+                  </motion.button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600 mt-3 text-center">Click any game to play</p>
+            </motion.div>
+          )}
         </div>
 
         <div className="p-4 border-t border-border/50">

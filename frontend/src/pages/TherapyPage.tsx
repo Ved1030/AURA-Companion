@@ -53,7 +53,7 @@ const therapists = [
   },
   {
     id: 3,
-    name: "Dr. Narendra Modi",
+    name: "Dr. Param Shah",
     specialty: "Trauma & PTSD",
     avatar: sarah,
     rating: 5.0,
