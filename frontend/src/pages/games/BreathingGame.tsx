@@ -1,22 +1,28 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Play } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-type Phase = "inhale" | "hold" | "exhale" | "idle" | "complete";
+interface Bubble {
+  id: number;
+  x: number;
+  size: number;
+  drift: number;
+  duration: number;
+}
 
 export default function BreathingGame() {
   const navigate = useNavigate();
 
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [timeLeft, setTimeLeft] = useState(60);
-  const [scale, setScale] = useState(1);
-  const [cycles, setCycles] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [score, setScore] = useState(0);
+  const [bubbles, setBubbles] = useState<Bubble[]>([]);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   /* ================= TIMER ================= */
   useEffect(() => {
-    if (phase === "idle" || phase === "complete") return;
+    if (!isPlaying) return;
     if (timeLeft <= 0) {
-      setPhase("complete");
+      setIsPlaying(false);
       return;
     }
 
@@ -25,53 +31,49 @@ export default function BreathingGame() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [phase, timeLeft]);
+  }, [isPlaying, timeLeft]);
 
-  /* ================= BREATH LOOP ================= */
+  /* ================= SPAWN BUBBLES ================= */
   useEffect(() => {
-    if (phase === "idle" || phase === "complete") return;
+    if (!isPlaying) return;
 
-    let timer: NodeJS.Timeout;
+    const interval = setInterval(() => {
+      const newBubble: Bubble = {
+        id: Date.now() + Math.random(),
+        x: Math.random() * 90,
+        size: 40 + Math.random() * 50,
+        drift: (Math.random() - 0.5) * 200, // random left/right drift
+        duration: 4000 + Math.random() * 3000, // 4–7 sec
+      };
 
-    if (phase === "inhale") {
-      setScale(1.4);
-      timer = setTimeout(() => setPhase("hold"), 4000);
-    } else if (phase === "hold") {
-      timer = setTimeout(() => setPhase("exhale"), 4000);
-    } else if (phase === "exhale") {
-      setScale(1);
-      timer = setTimeout(() => {
-        setCycles((c) => c + 1);
-        setPhase("inhale");
-      }, 4000);
-    }
+      setBubbles((prev) => [...prev, newBubble]);
 
-    return () => clearTimeout(timer);
-  }, [phase]);
+      // Auto remove after duration
+      setTimeout(() => {
+        setBubbles((prev) =>
+          prev.filter((b) => b.id !== newBubble.id)
+        );
+      }, newBubble.duration);
 
-  const startSession = () => {
-    setPhase("inhale");
-    setTimeLeft(60);
-    setCycles(0);
+    }, 600);
+
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  const popBubble = (id: number) => {
+    setBubbles((prev) => prev.filter((b) => b.id !== id));
+    setScore((prev) => prev + 1);
   };
 
-  const getInstruction = () => {
-    switch (phase) {
-      case "inhale":
-        return "Inhale Slowly...";
-      case "hold":
-        return "Hold...";
-      case "exhale":
-        return "Exhale Gently...";
-      case "complete":
-        return "Session Complete 🌿";
-      default:
-        return "Ready to Begin?";
-    }
+  const startGame = () => {
+    setTimeLeft(30);
+    setScore(0);
+    setBubbles([]);
+    setIsPlaying(true);
   };
 
   return (
-    <div className="min-h-screen bg-[#F3ECE6] flex flex-col items-center justify-center p-8 relative space-y-12">
+    <div className="min-h-screen bg-[#F3ECE6] flex flex-col items-center justify-center p-8 relative">
 
       {/* Back Button */}
       <button
@@ -83,40 +85,38 @@ export default function BreathingGame() {
       </button>
 
       {/* Header */}
-      <div className="text-center space-y-3">
+      <div className="text-center space-y-3 mb-8">
         <h1 className="text-4xl font-black text-gray-900">
-          Breathing Bubbles
+          Bubble Pop
         </h1>
         <p className="text-gray-600 text-sm">
-          Calm your nervous system with guided breathing
+          Pop as many bubbles as you can in 30 seconds!
         </p>
       </div>
 
-      {/* Breathing Orb */}
-      <div className="relative flex items-center justify-center">
+      {/* Game Area */}
+      <div className="relative w-full max-w-2xl h-[400px] bg-white rounded-3xl shadow-md overflow-hidden border border-white/80">
 
-        {/* Glow Layer */}
-        <div className="absolute w-72 h-72 rounded-full bg-[#D5D2FD] opacity-40 blur-3xl" />
+        {bubbles.map((bubble) => (
+          <div
+            key={bubble.id}
+            onClick={() => popBubble(bubble.id)}
+            className="absolute rounded-full bg-gradient-to-br from-[#F8E0C2] via-[#F0C7C3] to-[#D5D2FD] shadow-lg cursor-pointer"
+            style={{
+              width: bubble.size,
+              height: bubble.size,
+              left: `${bubble.x}%`,
+              bottom: "-80px",
+              animation: `floatUp ${bubble.duration}ms linear forwards`,
+              transform: `translateX(${bubble.drift}px)`
+            }}
+          />
+        ))}
 
-        {/* Animated Bubble */}
-        <div
-          className="rounded-full bg-gradient-to-br from-[#F8E0C2] via-[#F0C7C3] to-[#D5D2FD] shadow-xl transition-all duration-[4000ms] ease-in-out"
-          style={{
-            width: 240,
-            height: 240,
-            transform: `scale(${scale})`,
-          }}
-        />
-
-        <div className="absolute text-center px-6">
-          <p className="text-xl font-semibold text-gray-800">
-            {getInstruction()}
-          </p>
-        </div>
       </div>
 
-      {/* Stats Card */}
-      <div className="bg-white rounded-[2rem] p-6 w-80 text-center space-y-3 shadow-md border border-white/80">
+      {/* Stats */}
+      <div className="mt-6 bg-white rounded-2xl p-6 w-80 text-center space-y-3 shadow-md border border-white/80">
         <p className="text-sm text-gray-600">
           Time Remaining:
           <span className="text-gray-900 font-semibold ml-2">
@@ -125,41 +125,55 @@ export default function BreathingGame() {
         </p>
 
         <p className="text-sm text-gray-600">
-          Completed Cycles:
+          Score:
           <span className="text-[#C060B0] font-semibold ml-2">
-            {cycles}
+            {score}
           </span>
         </p>
       </div>
 
       {/* Start Button */}
-      {phase === "idle" && (
+      {!isPlaying && timeLeft === 30 && (
         <button
-          onClick={startSession}
-          className="px-8 py-3 rounded-2xl bg-gradient-to-r from-[#F8E0C2] to-[#D5D2FD] text-gray-900 font-semibold flex items-center gap-2 shadow-md hover:scale-105 transition"
+          onClick={startGame}
+          className="mt-6 px-8 py-3 rounded-2xl bg-gradient-to-r from-[#F8E0C2] to-[#D5D2FD] text-gray-900 font-semibold shadow-md hover:scale-105 transition"
         >
-          <Play className="w-4 h-4" />
-          Start Session
+          Start Game
         </button>
       )}
 
-      {/* Complete Card */}
-      {phase === "complete" && (
-        <div className="bg-white rounded-[2rem] p-6 text-center space-y-4 shadow-lg border border-white/80">
+      {/* Game Over */}
+      {!isPlaying && timeLeft === 0 && (
+        <div className="mt-6 bg-white rounded-2xl p-6 text-center space-y-4 shadow-lg border border-white/80">
           <h3 className="text-lg font-semibold text-gray-900">
-            Great Work 🌿
+            Time's Up! 🎉
           </h3>
           <p className="text-sm text-gray-600">
-            You completed {cycles} breathing cycles.
+            You popped {score} bubbles!
           </p>
           <button
-            onClick={startSession}
+            onClick={startGame}
             className="px-6 py-2 rounded-xl bg-gradient-to-r from-[#F8E0C2] to-[#D5D2FD] text-gray-900 font-medium hover:scale-105 transition"
           >
-            Try Again
+            Play Again
           </button>
         </div>
       )}
+
+      {/* Animation CSS */}
+      <style>
+        {`
+        @keyframes floatUp {
+          from {
+            transform: translateY(0);
+          }
+          to {
+            transform: translateY(-600px);
+          }
+        }
+        `}
+      </style>
+
     </div>
   );
 }
