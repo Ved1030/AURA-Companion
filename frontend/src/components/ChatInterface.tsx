@@ -43,21 +43,21 @@ const ChatInterface = () => {
       id: 0,
       name: "Calm Aura",
       image: avatar1, // adjust to real paths
-      modelUrl: "https://models.readyplayer.me/69a279d84d98c76821c317a1.glb",
+      modelUrl: "/assets/avatar/model.glb",
       sarvamModel: "sarvam-therapy-v1anushkamaleshubhanushka",
     },
     {
       id: 1,
       name: "Joy Aura",
       image: avatar2,
-      modelUrl: "https://models.readyplayer.me/69a26c875f0ce8d116ba5d5b.glb",
+      modelUrl: "/assets/avatar/model.glb",
       sarvamModel: "sarvam-energetic-v1hubhrya",
     },
     {
       id: 2,
       name: "Zen Aura",
       image: avatar3,
-      modelUrl: "https://models.readyplayer.me/69a27a2a2b9bcc76d538bf8a.glb",
+      modelUrl: "/assets/avatar/model.glb",
       sarvamModel: "sarvam-meditation-v1ituidya",
     },
     // add more avatars as needed

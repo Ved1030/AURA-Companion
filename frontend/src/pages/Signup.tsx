@@ -206,6 +206,11 @@ const Signup = () => {
               </Link>
             </p>
 
+            {/* ✅ NEW LINE ADDED BELOW */}
+            <p className="text-xs text-gray-500 text-center max-w-xs leading-relaxed">
+              By signing up, you agree that we may analyze your facial expressions and voice input to enhance your emotional insights.
+            </p>
+
             <div className="flex items-center gap-4 text-xs text-gray-500">
               <span className="flex items-center gap-1">
                 <CheckCircle2 size={12} /> HIPAA Compliant

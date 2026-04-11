@@ -8,7 +8,7 @@ export default function Avatar({ onReady, modelUrl }) {
 
   const { scene } = useGLTF(
     modelUrl ||
-      "https://models.readyplayer.me/6999ba7d2b9bcc76d5f61532.glb?morphTargets=ARKit&quality=high"
+      "/assets/avatar/model.glb"
   );
 
   const lipSync = useLipSync(scene);
