@@ -1,5 +1,4 @@
 # AURA Companion
-[![Ask DeepWiki](https://devin.ai/assets/askdeepwiki.png)](https://deepwiki.com/Ved1030/AURA-Companion)
 
 AURA is an emotionally intelligent AI wellness companion designed to provide a supportive and interactive experience for mental well-being. It leverages a multimodal approach, analyzing facial expressions, voice tonality, and text input to understand the user's emotional state in real-time. Based on this analysis, AURA offers personalized conversations, guided activities, and data-driven insights to foster emotional clarity and resilience.
 
